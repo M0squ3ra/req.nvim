@@ -32,7 +32,7 @@ local function context_json()
   return table.concat(lines, "\n")
 end
 
-function M.run(opts)
+local function execute(opts, extra_args, filetype)
   local bin = executable_bin()
 
   if not bin then
@@ -44,6 +44,10 @@ function M.run(opts)
   end
 
   local cmd = { bin }
+  for _, arg in ipairs(extra_args or {}) do
+    table.insert(cmd, arg)
+  end
+
   local context = context_json()
 
   if context then
@@ -58,9 +62,17 @@ function M.run(opts)
         return
       end
 
-      output.show(result.stdout)
+      output.show(result.stdout, filetype)
     end)
   end)
+end
+
+function M.run(opts)
+  execute(opts, {}, "req_response")
+end
+
+function M.curl(opts)
+  execute(opts, { "--export-curl" }, "sh")
 end
 
 return M

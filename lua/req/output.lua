@@ -40,11 +40,12 @@ local function open_buf(bufnr)
   vim.api.nvim_win_set_buf(0, bufnr)
 end
 
-function M.show(text)
+function M.show(text, filetype)
   local bufnr = get_or_create_buf()
 
   open_buf(bufnr)
 
+  vim.bo[bufnr].filetype = filetype or "req_response"
   vim.bo[bufnr].modifiable = true
 
   local lines = vim.split(text, "\n", { plain = true })

@@ -4,6 +4,10 @@ function M.run(opts)
   require("req.runner").run(opts)
 end
 
+function M.curl(opts)
+  require("req.runner").curl(opts)
+end
+
 function M.hello()
   require("req.runner").run()
 end
