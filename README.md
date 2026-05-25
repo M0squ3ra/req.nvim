@@ -19,7 +19,7 @@ style, with small req.nvim-specific metadata comments.
 - [x] Combine multiple environment groups when running a request.
 - [x] Prevent execution when selected environment groups override the same variable.
 - [ ] Import a `curl` command as a `.req` request.
-- [ ] Export a `.req` request as a `curl` command.
+- [x] Export a `.http`-style request as a `curl` command.
 - [ ] Import Postman collections.
 - [ ] Export Postman collections.
 
@@ -157,6 +157,13 @@ Example Rust invocation:
 
 ```sh
 req-nvim --context-json '{"envs":{"dev":{"BASE_URL":"https://dev.example.com"}}}'
+```
+
+Export the resolved request as a multiline `curl` command instead of executing
+it:
+
+```sh
+req-nvim --export-curl --context-json '{"envs":{"dev":{"BASE_URL":"https://dev.example.com"}}}'
 ```
 
 ## Contributing and development
