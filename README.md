@@ -57,8 +57,8 @@ A request can have a name, environment groups, inline variables, headers, and a 
 
 ```http
 ### Create user
-@env dev
-@env auth
+# @env dev
+# @env auth
 @BASE_URL=https://staging.example.com
 
 POST {{BASE_URL}}/users
@@ -75,14 +75,14 @@ Multiple requests can live in the same file. Each request starts with `###`:
 
 ```http
 ### Healthcheck
-@env dev
+# @env dev
 
 GET {{BASE_URL}}/health
 Accept: application/json
 
 ### Get user
-@env dev
-@env auth
+# @env dev
+# @env auth
 @USER_ID=1
 
 GET {{BASE_URL}}/users/{{USER_ID}}
@@ -93,7 +93,7 @@ Authorization: Bearer {{TOKEN}}
 Format rules:
 
 - `### Name` defines the request name.
-- `@env name` selects an environment group.
+- `# @env name` selects one environment group.
 - `@NAME=value` defines an inline variable for the current request.
 - `METHOD URL` defines the HTTP request line.
 - `Header-Name: value` defines a header.
@@ -103,7 +103,7 @@ Format rules:
 Variable precedence:
 
 1. Inline variables declared with `@NAME=value`.
-2. Variables from selected environment groups declared with `@env`.
+2. Variables from selected environment groups declared with `# @env`.
 3. Default or global variables.
 
 ## Runtime context design
@@ -113,7 +113,7 @@ request is passed to Rust through stdin.
 
 Lua is expected to pass an optional context to Rust. That context contains
 environment groups and their values. The request selects which groups to use with
-`@env`, and request-specific overrides can be declared with inline variables.
+`# @env`, and request-specific overrides can be declared with inline variables.
 
 Example context:
 
@@ -138,7 +138,7 @@ The expected runtime flow is:
 1. Lua sends the selected request to Rust.
 2. Lua optionally sends a context with environment groups and default values.
 3. Rust parses the request.
-4. Rust loads the selected `@env` groups from the context.
+4. Rust loads the selected `# @env` groups from the context.
 5. Rust checks that selected environment groups do not override each other.
 6. Rust applies inline variables as request-specific overrides.
 7. Rust replaces `{{VARIABLES}}` in the URL, headers, and body.
