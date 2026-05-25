@@ -204,6 +204,12 @@ it:
 req-nvim --export-curl --context-json '{"envs":{"dev":{"BASE_URL":"https://dev.example.com"}}}'
 ```
 
+List request ranges as JSON:
+
+```sh
+req-nvim --list-requests
+```
+
 ## Contributing and development
 
 Clone the repository and build the Rust binary before running the plugin locally.

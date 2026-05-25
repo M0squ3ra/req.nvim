@@ -1,6 +1,4 @@
  ### Create webhook event
-# @env dev
-# @env auth
 # just a comment
 # @env dev
 @USER_ID=1
@@ -16,7 +14,6 @@ Content-Type: application/json
   "userId": {{USER_ID}}
 }
 
-### Send SOAP request
 # @env dev
 # @env auth
 

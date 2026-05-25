@@ -10,6 +10,8 @@ pub struct ReqDocument {
 pub struct ReqBlock {
     /// Optional request name parsed from `### Name`.
     pub name: Option<String>,
+    /// One-based line number where the `###` marker appears.
+    pub marker_line: Option<usize>,
     /// One-based line number where the block content starts.
     pub start_line: usize,
     /// Classified lines that belong to this block.

@@ -145,6 +145,38 @@ GET https://example.com/second"#,
 }
 
 #[test]
+fn document_splits_unmarked_request_blocks() {
+    let document = parse_document(
+        r#"GET https://example.com/first
+
+# second request
+# @env dev
+GET https://example.com/second"#,
+    );
+
+    assert_eq!(document.requests.len(), 2);
+    assert_eq!(document.requests[0].start_line, 1);
+    assert_eq!(document.requests[1].start_line, 3);
+    assert_eq!(document.requests[1].lines[0], ReqLine::Comment);
+    assert_eq!(
+        document.requests[1].lines[1],
+        ReqLine::Directive(Directive::Env("dev".to_string()))
+    );
+}
+
+#[test]
+fn document_does_not_split_body_method_words_without_url() {
+    let document = parse_document(
+        r#"POST https://example.com
+Content-Type: text/plain
+
+GET this is body text"#,
+    );
+
+    assert_eq!(document.requests.len(), 1);
+}
+
+#[test]
 fn document_classifies_comments_and_directives() {
     let document = parse_document(
         r#"### Test

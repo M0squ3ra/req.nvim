@@ -35,12 +35,19 @@ function M.buffer()
   return table.concat(lines, "\n")
 end
 
-function M.input(opts)
-  if opts and opts.range > 0 then
-    return M.visual()
-  end
+function M.range(start_line, end_line)
+  local lines = vim.api.nvim_buf_get_lines(0, start_line - 1, end_line, false)
+  return table.concat(lines, "\n")
+end
 
-  return M.buffer()
+function M.find_at_cursor(requests)
+  local cursor_line = vim.api.nvim_win_get_cursor(0)[1]
+
+  for _, request in ipairs(requests) do
+    if cursor_line >= request.start_line and cursor_line <= request.end_line then
+      return request
+    end
+  end
 end
 
 return M

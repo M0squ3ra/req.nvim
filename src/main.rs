@@ -16,6 +16,19 @@ fn main() {
     io::stdin()
         .read_to_string(&mut input)
         .expect("Failed to read stdin");
+
+    if options.list_requests {
+        match serde_json::to_string(&req_core::req::listing::list_requests(&input)) {
+            Ok(json) => println!("{}", json),
+            Err(error) => {
+                eprintln!("List requests error: {}", error);
+                std::process::exit(1);
+            }
+        }
+
+        return;
+    }
+
     let parsed_request = match req_core::req::parser::parse_request(&input) {
         Ok(parsed_request) => parsed_request,
         Err(error) => {
@@ -90,15 +103,20 @@ fn main() {
 struct CliOptions {
     context: req_core::req::resolver::ResolveContext,
     export_curl: bool,
+    list_requests: bool,
 }
 
 fn parse_args() -> Result<CliOptions, String> {
     let mut args = env::args().skip(1);
     let mut context = None;
     let mut export_curl = false;
+    let mut list_requests = false;
 
     while let Some(arg) = args.next() {
         match arg.as_str() {
+            "--list-requests" => {
+                list_requests = true;
+            }
             "--export-curl" => {
                 export_curl = true;
             }
@@ -121,5 +139,6 @@ fn parse_args() -> Result<CliOptions, String> {
     Ok(CliOptions {
         context: context.unwrap_or_default(),
         export_curl,
+        list_requests,
     })
 }

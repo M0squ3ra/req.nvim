@@ -7,8 +7,10 @@
 pub mod ast;
 mod directive;
 mod document;
+mod error;
 mod marker;
 mod request;
 
 pub use document::parse_document;
+pub use error::ParseError;
 pub use request::parse_request;
