@@ -347,6 +347,45 @@ Invalid header"#,
 }
 
 #[test]
+fn rejects_missing_url() {
+    let error = parse_request("GET").unwrap_err();
+
+    assert_eq!(error.message, "Missing url");
+    assert_eq!(error.line, 1);
+    assert_eq!(error.column, 5);
+}
+
+#[test]
+fn rejects_invalid_request_line_with_extra_parts() {
+    let error = parse_request("GET https://example.com extra").unwrap_err();
+
+    assert_eq!(error.message, "Invalid request line");
+    assert_eq!(error.line, 1);
+}
+
+#[test]
+fn rejects_unsupported_method() {
+    let error = parse_request("TRACE https://example.com").unwrap_err();
+
+    assert_eq!(error.message, "Unsupported method: TRACE");
+    assert_eq!(error.line, 1);
+    assert_eq!(error.column, 1);
+}
+
+#[test]
+fn rejects_missing_header_name() {
+    let error = parse_request(
+        r#"GET https://example.com
+: missing"#,
+    )
+    .unwrap_err();
+
+    assert_eq!(error.message, "Missing header name");
+    assert_eq!(error.line, 2);
+    assert_eq!(error.column, 1);
+}
+
+#[test]
 fn rejects_directive_after_request_line() {
     let error = parse_request(
         r#"GET https://example.com

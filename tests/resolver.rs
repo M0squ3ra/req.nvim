@@ -172,6 +172,30 @@ fn rejects_missing_template_variable() {
 }
 
 #[test]
+fn rejects_missing_template_variable_in_header() {
+    let parsed = parsed_request(vec![], vec![], "https://example.com/posts");
+    let context = context(vec![("USER_ID", "1")], vec![]);
+
+    let error = resolve_request(parsed, context).unwrap_err();
+
+    assert_eq!(error.message, "Missing variable: TOKEN");
+}
+
+#[test]
+fn rejects_missing_template_variable_in_body() {
+    let parsed = parsed_request(
+        vec![],
+        vec![("TOKEN", "abc123")],
+        "https://example.com/posts",
+    );
+    let context = context(vec![], vec![]);
+
+    let error = resolve_request(parsed, context).unwrap_err();
+
+    assert_eq!(error.message, "Missing variable: USER_ID");
+}
+
+#[test]
 fn rejects_unclosed_template_variable() {
     let parsed = parsed_request(vec![], vec![("TOKEN", "abc123")], "{{BASE_URL/posts");
     let context = context(vec![("USER_ID", "1")], vec![]);
@@ -220,6 +244,19 @@ fn parses_valid_context_json() {
 #[test]
 fn rejects_invalid_context_json() {
     let error = ResolveContext::from_json("{invalid").unwrap_err();
+
+    assert!(error.message.starts_with("Invalid context JSON:"));
+}
+
+#[test]
+fn rejects_context_json_with_invalid_shape() {
+    let error = ResolveContext::from_json(
+        r#"{
+          "defaults": [],
+          "envs": {}
+        }"#,
+    )
+    .unwrap_err();
 
     assert!(error.message.starts_with("Invalid context JSON:"));
 }
