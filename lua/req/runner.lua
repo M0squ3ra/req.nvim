@@ -1,4 +1,5 @@
 local M = {}
+local output = require("req.output")
 
 local function plugin_root()
   local source = debug.getinfo(1, "S").source:sub(2)
@@ -37,7 +38,7 @@ function M.run()
         return
       end
 
-      vim.notify(vim.trim(result.stdout))
+      output.show(result.stdout)
     end)
   end)
 end
