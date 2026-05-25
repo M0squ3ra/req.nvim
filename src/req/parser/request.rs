@@ -1,5 +1,8 @@
 use crate::req::model::{HttpMethod, Request};
 
+use super::ast::{ReqBlock, ReqLine};
+use super::document::parse_document;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParseError {
     pub message: String,
@@ -8,11 +11,38 @@ pub struct ParseError {
 }
 
 pub fn parse_request(input: &str) -> Result<Request, ParseError> {
-    let (line_number, line) = first_non_empty_line(input)?;
-    parse_request_line(line, line_number)
+    let document = parse_document(input);
+
+    let block = document.requests.first().ok_or(ParseError {
+        message: "Empty request".to_string(),
+        line: 1,
+        column: 1,
+    })?;
+
+    parse_block(block)
 }
 
-fn parse_request_line(line: &str, line_number: usize) -> Result<Request, ParseError> {
+fn parse_block(block: &ReqBlock) -> Result<Request, ParseError> {
+    for (index, line) in block.lines.iter().enumerate() {
+        let ReqLine::Raw(raw) = line else {
+            continue;
+        };
+
+        return parse_request_line(block.name.clone(), raw, block.start_line + index);
+    }
+
+    Err(ParseError {
+        message: "Missing request line".to_string(),
+        line: block.start_line,
+        column: 1,
+    })
+}
+
+fn parse_request_line(
+    name: Option<String>,
+    line: &str,
+    line_number: usize,
+) -> Result<Request, ParseError> {
     let mut parts = line.split_whitespace();
 
     let method = parts.next().ok_or(ParseError {
@@ -38,26 +68,11 @@ fn parse_request_line(line: &str, line_number: usize) -> Result<Request, ParseEr
     let method = parse_method(method, line_number)?;
 
     Ok(Request {
-        name: None,
+        name,
         method,
         url: url.to_string(),
         headers: vec![],
         body: None,
-    })
-}
-
-fn first_non_empty_line(input: &str) -> Result<(usize, &str), ParseError> {
-    for (index, line) in input.lines().enumerate() {
-        let trimmed = line.trim();
-        if !trimmed.is_empty() {
-            return Ok((index + 1, trimmed));
-        }
-    }
-
-    Err(ParseError {
-        message: "Empty request".to_string(),
-        line: 1, //TODO, pass first line as argument
-        column: 1,
     })
 }
 
