@@ -13,6 +13,11 @@ pub struct ReqBlock {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ReqLine {
     Empty,
-    Env(String),
+    Directive(Directive),
     Raw(String),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Directive {
+    Env(String),
 }

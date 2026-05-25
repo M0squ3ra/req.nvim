@@ -1,9 +1,22 @@
-pub fn parse_env_directive(line: &str) -> Option<String> {
-    let env = line.strip_prefix("@env ")?.trim();
+use super::ast::Directive;
 
-    if env.is_empty() {
+pub fn parse_directive(line: &str) -> Option<Directive> {
+    let directive = line.strip_prefix("@")?;
+    let mut parts = directive.split_whitespace();
+    let name = parts.next()?;
+
+    match name {
+        "env" => parse_env(parts),
+        _ => None,
+    }
+}
+
+fn parse_env<'a>(mut parts: impl Iterator<Item = &'a str>) -> Option<Directive> {
+    let env = parts.next()?;
+
+    if parts.next().is_some() {
         return None;
     }
 
-    Some(env.to_string())
+    Some(Directive::Env(env.to_string()))
 }

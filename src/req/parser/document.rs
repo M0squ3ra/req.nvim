@@ -1,6 +1,6 @@
 use crate::req::parser::ast::{ReqBlock, ReqDocument, ReqLine};
 
-use super::directive::parse_env_directive;
+use super::directive::parse_directive;
 use super::marker::parse_request_marker;
 
 pub fn parse_document(input: &str) -> ReqDocument {
@@ -46,8 +46,8 @@ fn parse_line(line: &str) -> ReqLine {
         return ReqLine::Empty;
     }
 
-    if let Some(env) = parse_env_directive(line) {
-        return ReqLine::Env(env);
+    if let Some(directive) = parse_directive(line) {
+        return ReqLine::Directive(directive);
     }
 
     ReqLine::Raw(line.to_string())

@@ -24,11 +24,12 @@ pub fn parse_request(input: &str) -> Result<Request, ParseError> {
 
 fn parse_block(block: &ReqBlock) -> Result<Request, ParseError> {
     for (index, line) in block.lines.iter().enumerate() {
-        let ReqLine::Raw(raw) = line else {
-            continue;
-        };
-
-        return parse_request_line(block.name.clone(), raw, block.start_line + index);
+        match line {
+            ReqLine::Raw(raw) => {
+                return parse_request_line(block.name.clone(), raw, block.start_line + index);
+            }
+            ReqLine::Directive(_) | ReqLine::Empty => {}
+        }
     }
 
     Err(ParseError {
