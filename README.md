@@ -10,7 +10,6 @@ The initial file format for requests is `.req`.
 
 - [x] Execute the request under the cursor from a `.req` buffer.
 - [x] Execute a visually selected request from a `.req` buffer.
-- [ ] Show each request and response in a dedicated Neovim buffer.
 - [ ] Use environment groups for values such as `BASE_URL` and default headers.
 - [ ] Combine multiple environment groups when running a request.
 - [ ] Prevent execution when selected environment groups override the same variable.
