@@ -1,14 +1,14 @@
  ### Create webhook event
 @env dev
-@var BASE_URL=https://webhook.site/9a7ad0dc-dd55-4403-8817-50432786b871
-@var TOKEN=abc123
-@var TITLE=hello
-@var USER_ID=1
+@BASE_URL=https://webhook.site/9a7ad0dc-dd55-4403-8817-50432786b871
+@TOKEN=abc123
+@TITLE=hello
+@USER_ID=1
 
 POST {{BASE_URL}}/posts
 Authorization: Bearer {{TOKEN}}
 Content-Type: application/json
-@body
+
 {
   "title": "{{TITLE}}",
   "userId": {{USER_ID}}
@@ -21,7 +21,7 @@ POST https://webhook.site/9a7ad0dc-dd55-4403-8817-50432786b871
 Content-Type: text/xml; charset=utf-8
 SOAPAction: "urn:HelloWorld"
 X-Req-Source: req.nvim
-@body
+
 <?xml version="1.0" encoding="UTF-8"?>
 <soapenv:Envelope
 	xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
@@ -33,4 +33,3 @@ X-Req-Source: req.nvim
 		</req:HelloWorldRequest>
 	</soapenv:Body>
 </soapenv:Envelope>
-

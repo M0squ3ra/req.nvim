@@ -1,7 +1,7 @@
 use super::ast::Directive;
 
 /// Parses a `.req` directive line.
-/// Currently supports `@env name`, `@var NAME=value`, and `@body`.
+/// Currently supports `@env name` and `.http`-style variables like `@NAME=value`.
 pub fn parse_directive(line: &str) -> Option<Directive> {
     let directive = line.strip_prefix("@")?;
     let mut parts = directive.split_whitespace();
@@ -9,9 +9,7 @@ pub fn parse_directive(line: &str) -> Option<Directive> {
 
     match name {
         "env" => parse_env(parts),
-        "var" => parse_var(parts),
-        "body" => parse_body(parts),
-        _ => None,
+        _ => parse_variable(directive),
     }
 }
 
@@ -26,9 +24,8 @@ fn parse_env<'a>(mut parts: impl Iterator<Item = &'a str>) -> Option<Directive> 
     Some(Directive::Env(env.to_string()))
 }
 
-/// Parses the arguments of an `@var` directive.
-fn parse_var<'a>(parts: impl Iterator<Item = &'a str>) -> Option<Directive> {
-    let variable = parts.collect::<Vec<_>>().join(" ");
+/// Parses a `.http`-style inline variable.
+fn parse_variable(variable: &str) -> Option<Directive> {
     let (name, value) = variable.split_once("=")?;
     let name = name.trim();
     let value = value.trim();
@@ -37,17 +34,8 @@ fn parse_var<'a>(parts: impl Iterator<Item = &'a str>) -> Option<Directive> {
         return None;
     }
 
-    Some(Directive::Var {
+    Some(Directive::Variable {
         name: name.to_string(),
         value: value.to_string(),
     })
-}
-
-/// Parses the arguments of an `@body` directive.
-fn parse_body<'a>(mut parts: impl Iterator<Item = &'a str>) -> Option<Directive> {
-    if parts.next().is_some() {
-        return None;
-    }
-
-    Some(Directive::Body)
 }

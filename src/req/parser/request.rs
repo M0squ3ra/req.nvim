@@ -61,7 +61,7 @@ fn parse_block(block: &ReqBlock) -> Result<ParsedRequest, ParseError> {
                 ReqLine::Directive(Directive::Env(env)) => {
                     envs.push(env.clone());
                 }
-                ReqLine::Directive(Directive::Var { name, value }) => {
+                ReqLine::Directive(Directive::Variable { name, value }) => {
                     vars.push(Variable {
                         name: name.clone(),
                         value: value.clone(),
@@ -79,9 +79,6 @@ fn parse_block(block: &ReqBlock) -> Result<ParsedRequest, ParseError> {
                 }
                 ReqLine::Raw(raw) => {
                     headers.push(parse_header(raw, line_number)?);
-                }
-                ReqLine::Directive(Directive::Body) => {
-                    state = ParseState::InBody;
                 }
                 ReqLine::Directive(_) => {
                     return Err(invalid_directive_position(line_number));
@@ -130,7 +127,7 @@ fn parse_block(block: &ReqBlock) -> Result<ParsedRequest, ParseError> {
 
 fn invalid_directive_position(line_number: usize) -> ParseError {
     ParseError {
-        message: "Directive must appear before request line or be @body".to_string(),
+        message: "Directive must appear before request line".to_string(),
         line: line_number,
         column: 1,
     }

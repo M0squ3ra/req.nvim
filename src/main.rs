@@ -31,7 +31,7 @@ fn main() {
             parsed_request
                 .vars
                 .iter()
-                .map(|var| format!("@var {}={}", var.name, var.value)),
+                .map(|var| format!("@{}={}", var.name, var.value)),
         )
         .collect::<Vec<_>>();
 

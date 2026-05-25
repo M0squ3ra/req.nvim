@@ -59,13 +59,12 @@ A request can have a name, environment groups, inline variables, headers, and a 
 ### Create user
 @env dev
 @env auth
-@var BASE_URL=https://staging.example.com
+@BASE_URL=https://staging.example.com
 
 POST {{BASE_URL}}/users
-@headers
 Content-Type: application/json
 Authorization: Bearer {{TOKEN}}
-@body
+
 {
   "name": "John",
   "email": "john@example.com"
@@ -79,16 +78,14 @@ Multiple requests can live in the same file. Each request starts with `###`:
 @env dev
 
 GET {{BASE_URL}}/health
-@headers
 Accept: application/json
 
 ### Get user
 @env dev
 @env auth
-@var USER_ID=1
+@USER_ID=1
 
 GET {{BASE_URL}}/users/{{USER_ID}}
-@headers
 Accept: application/json
 Authorization: Bearer {{TOKEN}}
 ```
@@ -97,16 +94,15 @@ Format rules:
 
 - `### Name` defines the request name.
 - `@env name` selects an environment group.
-- `@var NAME=value` defines an inline variable for the current request.
+- `@NAME=value` defines an inline variable for the current request.
 - `METHOD URL` defines the HTTP request line.
-- `@headers` starts the request headers section.
 - `Header-Name: value` defines a header.
-- `@body` starts the request body section.
+- The body starts after the first empty line following the request line and headers.
 - Variables use `{{NAME}}` syntax.
 
 Variable precedence:
 
-1. Inline variables declared with `@var`.
+1. Inline variables declared with `@NAME=value`.
 2. Variables from selected environment groups declared with `@env`.
 3. Default or global variables.
 
@@ -117,7 +113,7 @@ request is passed to Rust through stdin.
 
 Lua is expected to pass an optional context to Rust. That context contains
 environment groups and their values. The request selects which groups to use with
-`@env`, and request-specific overrides can be declared with `@var`.
+`@env`, and request-specific overrides can be declared with inline variables.
 
 Example context:
 
@@ -144,7 +140,7 @@ The expected runtime flow is:
 3. Rust parses the request.
 4. Rust loads the selected `@env` groups from the context.
 5. Rust checks that selected environment groups do not override each other.
-6. Rust applies `@var` values as request-specific overrides.
+6. Rust applies inline variables as request-specific overrides.
 7. Rust replaces `{{VARIABLES}}` in the URL, headers, and body.
 8. Rust executes the HTTP request.
 
