@@ -64,6 +64,12 @@ fn first_non_empty_line(input: &str) -> Result<(usize, &str), ParseError> {
 fn parse_method(method: &str, line_number: usize) -> Result<HttpMethod, ParseError> {
     match method {
         "GET" => Ok(HttpMethod::Get),
+        "POST" => Ok(HttpMethod::Post),
+        "PUT" => Ok(HttpMethod::Put),
+        "PATCH" => Ok(HttpMethod::Patch),
+        "DELETE" => Ok(HttpMethod::Delete),
+        "HEAD" => Ok(HttpMethod::Head),
+        "OPTIONS" => Ok(HttpMethod::Options),
         other => Err(ParseError {
             message: format!("Unsupported method: {other}"),
             line: line_number,

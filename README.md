@@ -9,7 +9,7 @@ Lua loads the plugin inside Neovim, runs the Rust binary with `vim.system`, and 
 The initial file format for requests is `.req`.
 
 - [x] Execute the request under the cursor from a `.req` buffer.
-- [ ] Execute a visually selected request from a `.req` buffer.
+- [x] Execute a visually selected request from a `.req` buffer.
 - [ ] Show each request and response in a dedicated Neovim buffer.
 - [ ] Use environment groups for values such as `BASE_URL` and default headers.
 - [ ] Combine multiple environment groups when running a request.

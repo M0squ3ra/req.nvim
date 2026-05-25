@@ -1,5 +1,6 @@
 local M = {}
 local output = require("req.output")
+local selection = require("req.selection")
 
 local function plugin_root()
   local source = debug.getinfo(1, "S").source:sub(2)
@@ -20,16 +21,6 @@ local function executable_bin()
   end
 end
 
-local function input_text(opts)
-  if opts and opts.range > 0 then
-    local lines = vim.api.nvim_buf_get_lines(0, opts.line1 - 1, opts.line2, false)
-    return table.concat(lines, "\n")
-  end
-
-  local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
-  return table.concat(lines, "\n")
-end
-
 function M.run(opts)
   local bin = executable_bin()
 
@@ -41,7 +32,7 @@ function M.run(opts)
     return
   end
 
-  vim.system({ bin }, { text = true, stdin = input_text(opts) }, function(result)
+  vim.system({ bin }, { text = true, stdin = selection.input(opts) }, function(result)
     vim.schedule(function()
       if result.code ~= 0 then
         vim.notify(result.stderr, vim.log.levels.ERROR)
