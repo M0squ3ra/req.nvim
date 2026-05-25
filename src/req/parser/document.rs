@@ -55,5 +55,13 @@ fn parse_line(raw: &str, trimmed: &str) -> ReqLine {
         return ReqLine::Directive(directive);
     }
 
+    if is_comment(trimmed) {
+        return ReqLine::Comment;
+    }
+
     ReqLine::Raw(raw.to_string())
+}
+
+fn is_comment(line: &str) -> bool {
+    line.starts_with("#") || line.starts_with("//")
 }

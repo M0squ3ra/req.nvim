@@ -57,7 +57,7 @@ fn parse_block(block: &ReqBlock) -> Result<ParsedRequest, ParseError> {
 
         match state {
             ParseState::BeforeRequestLine => match line {
-                ReqLine::Empty => {}
+                ReqLine::Empty | ReqLine::Comment => {}
                 ReqLine::Directive(Directive::Env(env)) => {
                     envs.push(env.clone());
                 }
@@ -74,6 +74,7 @@ fn parse_block(block: &ReqBlock) -> Result<ParsedRequest, ParseError> {
                 }
             },
             ParseState::InHeaders => match line {
+                ReqLine::Comment => {}
                 ReqLine::Empty => {
                     state = ParseState::InBody;
                 }
@@ -85,6 +86,7 @@ fn parse_block(block: &ReqBlock) -> Result<ParsedRequest, ParseError> {
                 }
             },
             ParseState::InBody => match line {
+                ReqLine::Comment => {}
                 ReqLine::Empty => {
                     body_lines.push(String::new());
                 }

@@ -1,9 +1,8 @@
  ### Create webhook event
 # @env dev
-@BASE_URL=https://webhook.site/9a7ad0dc-dd55-4403-8817-50432786b871
-@TOKEN=abc123
-@TITLE=hello
 @USER_ID=1
+@BASE_URL=https://webhook.site/9a7ad0dc-dd55-4403-8817-50432786b871
+@TITLE=hello
 
 POST {{BASE_URL}}/posts
 Authorization: Bearer {{TOKEN}}

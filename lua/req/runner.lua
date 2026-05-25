@@ -21,6 +21,17 @@ local function executable_bin()
   end
 end
 
+local function context_json()
+  local path = vim.fs.joinpath(vim.fn.getcwd(), ".req", "env.json")
+
+  if vim.fn.filereadable(path) ~= 1 then
+    return nil
+  end
+
+  local lines = vim.fn.readfile(path)
+  return table.concat(lines, "\n")
+end
+
 function M.run(opts)
   local bin = executable_bin()
 
@@ -32,7 +43,15 @@ function M.run(opts)
     return
   end
 
-  vim.system({ bin }, { text = true, stdin = selection.input(opts) }, function(result)
+  local cmd = { bin }
+  local context = context_json()
+
+  if context then
+    table.insert(cmd, "--context-json")
+    table.insert(cmd, context)
+  end
+
+  vim.system(cmd, { text = true, stdin = selection.input(opts) }, function(result)
     vim.schedule(function()
       if result.code ~= 0 then
         vim.notify(result.stderr, vim.log.levels.ERROR)

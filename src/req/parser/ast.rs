@@ -21,6 +21,8 @@ pub struct ReqBlock {
 pub enum ReqLine {
     /// An empty line.
     Empty,
+    /// A regular comment ignored by request parsing.
+    Comment,
     /// A parser-supported directive such as `@env dev`.
     Directive(Directive),
     /// Any line that is not empty and not a supported directive.
