@@ -1,0 +1,7 @@
+### Get post
+# regular comment
+# @env dev
+@POST_ID=1
+
+GET {{BASE_URL}}/posts/{{POST_ID}}
+Accept: application/json

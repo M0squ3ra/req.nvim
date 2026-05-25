@@ -1,0 +1,12 @@
+### Create post
+# @env dev
+@TITLE=hello
+
+POST {{BASE_URL}}/posts
+Content-Type: application/json
+Authorization: Bearer {{TOKEN}}
+
+{
+  "title": "{{TITLE}}",
+  "published": true
+}

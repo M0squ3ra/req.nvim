@@ -98,3 +98,85 @@ GET this is body text"#,
         }]
     );
 }
+
+#[test]
+fn fixture_lists_mixed_request_ranges() {
+    let requests = list_requests(include_str!("fixtures/listing/mixed_multiple_requests.http"));
+
+    assert_eq!(
+        requests,
+        vec![
+            RequestListing {
+                name: None,
+                start_line: 1,
+                end_line: 5,
+            },
+            RequestListing {
+                name: Some("Create user".to_string()),
+                start_line: 6,
+                end_line: 16,
+            },
+            RequestListing {
+                name: None,
+                start_line: 17,
+                end_line: 21,
+            },
+            RequestListing {
+                name: Some("Update user".to_string()),
+                start_line: 22,
+                end_line: 28,
+            },
+        ]
+    );
+}
+
+#[test]
+fn fixture_lists_large_mixed_request_ranges() {
+    let requests = list_requests(include_str!("fixtures/large_mixed.http"));
+
+    assert_eq!(
+        requests,
+        vec![
+            RequestListing {
+                name: None,
+                start_line: 1,
+                end_line: 6,
+            },
+            RequestListing {
+                name: Some("List users".to_string()),
+                start_line: 7,
+                end_line: 10,
+            },
+            RequestListing {
+                name: None,
+                start_line: 11,
+                end_line: 13,
+            },
+            RequestListing {
+                name: Some("Create user".to_string()),
+                start_line: 14,
+                end_line: 25,
+            },
+            RequestListing {
+                name: None,
+                start_line: 26,
+                end_line: 32,
+            },
+            RequestListing {
+                name: Some("Ping absolute url".to_string()),
+                start_line: 33,
+                end_line: 35,
+            },
+            RequestListing {
+                name: None,
+                start_line: 36,
+                end_line: 38,
+            },
+            RequestListing {
+                name: Some("Text payload".to_string()),
+                start_line: 39,
+                end_line: 44,
+            },
+        ]
+    );
+}

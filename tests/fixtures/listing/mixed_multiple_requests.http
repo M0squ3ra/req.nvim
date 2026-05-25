@@ -1,0 +1,28 @@
+# file level comment
+
+GET https://example.com/health
+Accept: application/json
+
+### Create user
+# @env dev
+@NAME=John
+
+POST {{BASE_URL}}/users
+Content-Type: application/json
+
+{
+  "name": "{{NAME}}"
+}
+
+// comment between requests
+# @env auth
+DELETE {{BASE_URL}}/users/1
+Authorization: Bearer {{TOKEN}}
+
+### Update user
+PUT {{BASE_URL}}/users/1
+Content-Type: application/json
+
+{
+  "name": "Jane"
+}

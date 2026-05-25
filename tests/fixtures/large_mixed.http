@@ -1,0 +1,44 @@
+# workspace comment
+# @env dev
+@API_VERSION=v1
+
+GET {{BASE_URL}}/{{API_VERSION}}/status
+
+### List users
+GET {{BASE_URL}}/users
+Accept: application/json
+
+// request without name and without headers
+DELETE {{BASE_URL}}/users/10
+
+### Create user
+# @env auth
+@USER_NAME=Jane
+
+POST {{BASE_URL}}/users
+Content-Type: application/json
+Authorization: Bearer {{TOKEN}}
+
+{
+  "name": "{{USER_NAME}}"
+}
+
+PATCH {{BASE_URL}}/users/10
+Content-Type: application/json
+
+{
+  "active": false
+}
+
+### Ping absolute url
+HEAD https://example.com/ping
+
+OPTIONS /local/options
+Accept: */*
+
+### Text payload
+POST {{BASE_URL}}/logs
+Content-Type: text/plain
+
+GET this line is part of the body
+POST this one too

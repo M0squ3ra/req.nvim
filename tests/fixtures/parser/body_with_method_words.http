@@ -1,0 +1,5 @@
+POST https://example.com/debug
+Content-Type: text/plain
+
+GET this is body text
+DELETE this is also body text

@@ -200,6 +200,131 @@ GET https://example.com"#,
 }
 
 #[test]
+fn fixture_parses_simple_unmarked_request() {
+    let parsed = parse_request(include_str!("fixtures/parser/simple_unmarked.http")).unwrap();
+
+    assert_eq!(parsed.name, None);
+    assert_eq!(parsed.request.method, HttpMethod::Get);
+    assert_eq!(parsed.request.url, "https://example.com/users");
+    assert_eq!(
+        parsed.request.headers,
+        vec![Header {
+            name: "Accept".to_string(),
+            value: "application/json".to_string(),
+        }]
+    );
+    assert_eq!(parsed.request.body, None);
+}
+
+#[test]
+fn fixture_parses_marked_request_with_env_and_vars() {
+    let parsed = parse_request(include_str!("fixtures/parser/marked_with_env_and_vars.http"))
+        .unwrap();
+
+    assert_eq!(parsed.name, Some("Get post".to_string()));
+    assert_eq!(parsed.envs, vec!["dev".to_string()]);
+    assert_eq!(
+        parsed.vars,
+        vec![Variable {
+            name: "POST_ID".to_string(),
+            value: "1".to_string(),
+        }]
+    );
+    assert_eq!(parsed.request.url, "{{BASE_URL}}/posts/{{POST_ID}}");
+}
+
+#[test]
+fn fixture_parses_post_with_json_body() {
+    let parsed = parse_request(include_str!("fixtures/parser/post_with_json_body.http")).unwrap();
+
+    assert_eq!(parsed.name, Some("Create post".to_string()));
+    assert_eq!(parsed.request.method, HttpMethod::Post);
+    assert_eq!(parsed.request.headers.len(), 2);
+    assert_eq!(
+        parsed.request.body,
+        Some(RequestBody::Raw(
+            "{\n  \"title\": \"{{TITLE}}\",\n  \"published\": true\n}".to_string()
+        ))
+    );
+}
+
+#[test]
+fn fixture_splits_mixed_multiple_requests() {
+    let document = parse_document(include_str!("fixtures/parser/mixed_multiple_requests.http"));
+
+    assert_eq!(document.requests.len(), 4);
+    assert_eq!(document.requests[0].name, None);
+    assert_eq!(document.requests[1].name, Some("Create user".to_string()));
+    assert_eq!(document.requests[2].name, None);
+    assert_eq!(document.requests[3].name, Some("Update user".to_string()));
+}
+
+#[test]
+fn fixture_does_not_split_body_method_words() {
+    let document = parse_document(include_str!("fixtures/parser/body_with_method_words.http"));
+
+    assert_eq!(document.requests.len(), 1);
+}
+
+#[test]
+fn fixture_splits_large_mixed_http_file() {
+    let document = parse_document(include_str!("fixtures/large_mixed.http"));
+
+    assert_eq!(document.requests.len(), 8);
+    assert_eq!(document.requests[0].name, None);
+    assert_eq!(document.requests[1].name, Some("List users".to_string()));
+    assert_eq!(document.requests[2].name, None);
+    assert_eq!(document.requests[3].name, Some("Create user".to_string()));
+    assert_eq!(document.requests[4].name, None);
+    assert_eq!(
+        document.requests[5].name,
+        Some("Ping absolute url".to_string())
+    );
+    assert_eq!(document.requests[6].name, None);
+    assert_eq!(document.requests[7].name, Some("Text payload".to_string()));
+}
+
+#[test]
+fn fixture_large_mixed_first_request_keeps_prelude() {
+    let document = parse_document(include_str!("fixtures/large_mixed.http"));
+    let first = &document.requests[0];
+
+    assert_eq!(first.start_line, 1);
+    assert_eq!(first.lines[0], ReqLine::Comment);
+    assert_eq!(
+        first.lines[1],
+        ReqLine::Directive(Directive::Env("dev".to_string()))
+    );
+    assert_eq!(
+        first.lines[2],
+        ReqLine::Directive(Directive::Variable {
+            name: "API_VERSION".to_string(),
+            value: "v1".to_string(),
+        })
+    );
+}
+
+#[test]
+fn fixture_large_mixed_parses_body_with_method_words() {
+    let parsed = parse_request(
+        r#"### Text payload
+POST {{BASE_URL}}/logs
+Content-Type: text/plain
+
+GET this line is part of the body
+POST this one too"#,
+    )
+    .unwrap();
+
+    assert_eq!(
+        parsed.request.body,
+        Some(RequestBody::Raw(
+            "GET this line is part of the body\nPOST this one too".to_string()
+        ))
+    );
+}
+
+#[test]
 fn rejects_missing_request_line() {
     let error = parse_request(
         r#"### Empty
