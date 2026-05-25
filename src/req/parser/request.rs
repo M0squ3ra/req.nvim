@@ -1,4 +1,4 @@
-use crate::req::model::{Header, HttpMethod, Request, RequestBody};
+use crate::req::model::{Header, HttpMethod, ParsedRequest, Request, RequestBody};
 
 use super::ast::{Directive, ReqBlock, ReqLine};
 use super::document::parse_document;
@@ -30,8 +30,8 @@ enum ParseState {
     InBody,
 }
 
-/// Parses the first request block from `.req` input into an executable request.
-pub fn parse_request(input: &str) -> Result<Request, ParseError> {
+/// Parses the first request block from `.req` input into a parsed request.
+pub fn parse_request(input: &str) -> Result<ParsedRequest, ParseError> {
     let document = parse_document(input);
 
     let block = document.requests.first().ok_or(ParseError {
@@ -44,9 +44,10 @@ pub fn parse_request(input: &str) -> Result<Request, ParseError> {
 }
 
 /// Lowers a parsed request block into the plugin request model.
-fn parse_block(block: &ReqBlock) -> Result<Request, ParseError> {
+fn parse_block(block: &ReqBlock) -> Result<ParsedRequest, ParseError> {
     let mut state = ParseState::BeforeRequestLine;
     let mut request_line = None;
+    let mut envs = Vec::new();
     let mut headers = Vec::new();
     let mut body_lines = Vec::new();
 
@@ -55,7 +56,11 @@ fn parse_block(block: &ReqBlock) -> Result<Request, ParseError> {
 
         match state {
             ParseState::BeforeRequestLine => match line {
-                ReqLine::Empty | ReqLine::Directive(_) => {}
+                ReqLine::Empty => {}
+                ReqLine::Directive(Directive::Env(env)) => {
+                    envs.push(env.clone());
+                }
+                ReqLine::Directive(_) => {}
                 ReqLine::Raw(raw) => {
                     request_line = Some(parse_request_line(raw, line_number)?);
                     state = ParseState::InHeaders;
@@ -101,12 +106,17 @@ fn parse_block(block: &ReqBlock) -> Result<Request, ParseError> {
         Some(RequestBody::Raw(body_lines.join("\n")))
     };
 
-    Ok(Request {
-        name: block.name.clone(),
+    let request = Request {
         method: request_line.method,
         url: request_line.url,
         headers,
         body,
+    };
+
+    Ok(ParsedRequest {
+        name: block.name.clone(),
+        envs,
+        request,
     })
 }
 

@@ -1,6 +1,12 @@
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Request {
+pub struct ParsedRequest {
     pub name: Option<String>,
+    pub envs: Vec<String>,
+    pub request: Request,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Request {
     pub method: HttpMethod,
     pub url: String,
     pub headers: Vec<Header>,

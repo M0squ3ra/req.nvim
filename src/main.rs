@@ -3,16 +3,13 @@ use std::io::{self, Read};
 mod http;
 mod req;
 
-use req::parser::ast::{Directive, ReqLine};
-
 fn main() {
     let mut input = String::new();
     io::stdin()
         .read_to_string(&mut input)
         .expect("Failed to read stdin");
-    let document = req::parser::parse_document(&input);
-    let request = match req::parser::parse_request(&input) {
-        Ok(request) => request,
+    let parsed_request = match req::parser::parse_request(&input) {
+        Ok(parsed_request) => parsed_request,
         Err(error) => {
             eprintln!(
                 "Parse error at {}:{}: {}",
@@ -22,26 +19,17 @@ fn main() {
         }
     };
 
-    let request_name = request
+    let request_name = parsed_request
         .name
         .clone()
         .unwrap_or_else(|| "Untitled request".to_string());
-    let directives = document
-        .requests
-        .first()
-        .map(|block| {
-            block
-                .lines
-                .iter()
-                .filter_map(|line| match line {
-                    ReqLine::Directive(Directive::Env(env)) => Some(format!("@env {}", env)),
-                    _ => None,
-                })
-                .collect::<Vec<_>>()
-        })
-        .unwrap_or_default();
+    let directives = parsed_request
+        .envs
+        .iter()
+        .map(|env| format!("@env {}", env))
+        .collect::<Vec<_>>();
 
-    let response = match http::client::execute(request) {
+    let response = match http::client::execute(parsed_request.request) {
         Ok(response) => response,
         Err(error) => {
             eprintln!("request error: {}", error);
