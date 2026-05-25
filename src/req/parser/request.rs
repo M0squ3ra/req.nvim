@@ -1,4 +1,4 @@
-use crate::req::model::{Header, HttpMethod, ParsedRequest, Request, RequestBody};
+use crate::req::model::{Header, HttpMethod, ParsedRequest, Request, RequestBody, Variable};
 
 use super::ast::{Directive, ReqBlock, ReqLine};
 use super::document::parse_document;
@@ -48,6 +48,7 @@ fn parse_block(block: &ReqBlock) -> Result<ParsedRequest, ParseError> {
     let mut state = ParseState::BeforeRequestLine;
     let mut request_line = None;
     let mut envs = Vec::new();
+    let mut vars = Vec::new();
     let mut headers = Vec::new();
     let mut body_lines = Vec::new();
 
@@ -59,6 +60,12 @@ fn parse_block(block: &ReqBlock) -> Result<ParsedRequest, ParseError> {
                 ReqLine::Empty => {}
                 ReqLine::Directive(Directive::Env(env)) => {
                     envs.push(env.clone());
+                }
+                ReqLine::Directive(Directive::Var { name, value }) => {
+                    vars.push(Variable {
+                        name: name.clone(),
+                        value: value.clone(),
+                    });
                 }
                 ReqLine::Directive(_) => {}
                 ReqLine::Raw(raw) => {
@@ -116,6 +123,7 @@ fn parse_block(block: &ReqBlock) -> Result<ParsedRequest, ParseError> {
     Ok(ParsedRequest {
         name: block.name.clone(),
         envs,
+        vars,
         request,
     })
 }

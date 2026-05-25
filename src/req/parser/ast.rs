@@ -32,6 +32,8 @@ pub enum ReqLine {
 pub enum Directive {
     /// Selects an environment group for the request.
     Env(String),
+    /// Defines a request-local variable override.
+    Var { name: String, value: String },
     /// Starts the request body.
     Body,
 }

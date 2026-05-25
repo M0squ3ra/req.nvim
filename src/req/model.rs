@@ -2,7 +2,14 @@
 pub struct ParsedRequest {
     pub name: Option<String>,
     pub envs: Vec<String>,
+    pub vars: Vec<Variable>,
     pub request: Request,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Variable {
+    pub name: String,
+    pub value: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -27,6 +27,12 @@ fn main() {
         .envs
         .iter()
         .map(|env| format!("@env {}", env))
+        .chain(
+            parsed_request
+                .vars
+                .iter()
+                .map(|var| format!("@var {}={}", var.name, var.value)),
+        )
         .collect::<Vec<_>>();
 
     let response = match http::client::execute(parsed_request.request) {
