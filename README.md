@@ -44,6 +44,60 @@ Run the plugin command in Neovim:
 hello from rust
 ```
 
+## Request format
+
+Requests are written in `.req` files.
+
+A minimal request contains an HTTP method and a URL:
+
+```http
+GET https://example.com
+```
+
+A request can have a name, environment groups, headers, and a body:
+
+```http
+### Create user
+@env dev
+@env auth
+
+POST {{BASE_URL}}/users
+Content-Type: application/json
+Authorization: Bearer {{TOKEN}}
+
+{
+  "name": "John",
+  "email": "john@example.com"
+}
+```
+
+Multiple requests can live in the same file. Each request starts with `###`:
+
+```http
+### Healthcheck
+@env dev
+
+GET {{BASE_URL}}/health
+Accept: application/json
+
+### Get user
+@env dev
+@env auth
+
+GET {{BASE_URL}}/users/1
+Accept: application/json
+Authorization: Bearer {{TOKEN}}
+```
+
+Format rules:
+
+- `### Name` defines the request name.
+- `@env name` selects an environment group.
+- `METHOD URL` defines the HTTP request line.
+- `Header-Name: value` defines a header.
+- The body starts after the first empty line following the request line and headers.
+- Variables use `{{NAME}}` syntax.
+
 ## Contributing and development
 
 Clone the repository and build the Rust binary before running the plugin locally.

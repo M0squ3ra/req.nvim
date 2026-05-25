@@ -1,5 +1,7 @@
 mod http;
-use http::model::{HttpMethod, Request};
+mod req;
+
+use req::model::{HttpMethod, Request};
 
 fn main() {
     let request = Request {

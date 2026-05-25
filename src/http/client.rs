@@ -1,4 +1,4 @@
-use crate::http::model::{Header, HttpMethod, Request, RequestBody, Response};
+use crate::req::model::{Header, HttpMethod, Request, RequestBody, Response};
 
 pub fn execute(request: Request) -> Result<Response, String> {
     let client = reqwest::blocking::Client::new();
