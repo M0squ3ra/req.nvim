@@ -1,17 +1,17 @@
  ### Create webhook event
 @env dev
 @var BASE_URL=https://webhook.site/9a7ad0dc-dd55-4403-8817-50432786b871
+@var TOKEN=abc123
+@var TITLE=hello
+@var USER_ID=1
 
-
-POST https://webhook.site/9a7ad0dc-dd55-4403-8817-50432786b871
+POST {{BASE_URL}}/posts
+Authorization: Bearer {{TOKEN}}
 Content-Type: application/json
-Accept: application/json
-X-Req-Source: req.nvim
 @body
 {
-  "event": "hello",
-  "source": "req.nvim",
-  "message": "hello from req.nvim"
+  "title": "{{TITLE}}",
+  "userId": {{USER_ID}}
 }
 
 ### Send SOAP request

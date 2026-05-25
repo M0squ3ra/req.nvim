@@ -35,7 +35,15 @@ fn main() {
         )
         .collect::<Vec<_>>();
 
-    let response = match http::client::execute(parsed_request.request) {
+    let request = match req::resolver::resolve_request(parsed_request) {
+        Ok(request) => request,
+        Err(error) => {
+            eprintln!("Resolve error: {}", error.message);
+            std::process::exit(1);
+        }
+    };
+
+    let response = match http::client::execute(request) {
         Ok(response) => response,
         Err(error) => {
             eprintln!("request error: {}", error);
