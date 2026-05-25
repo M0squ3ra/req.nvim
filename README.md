@@ -7,22 +7,6 @@ Neovim buffers, selections, commands, and local configuration. Rust is designed
 to stay independent from Neovim: it receives the selected request as input,
 resolves the request context, and executes the HTTP call.
 
-## MVP goals
-
-The initial file format for requests follows the common `.http` request file
-style, with small req.nvim-specific metadata comments.
-
-- [x] Execute the request under the cursor from a `.req` buffer.
-- [x] Execute a visually selected request from a `.req` buffer.
-- [x] Use environment groups for values such as `BASE_URL` and default headers.
-- [x] Use inline variables to override environment values for a single request.
-- [x] Combine multiple environment groups when running a request.
-- [x] Prevent execution when selected environment groups override the same variable.
-- [ ] Import a `curl` command as a `.req` request.
-- [x] Export a `.http`-style request as a `curl` command.
-- [ ] Import Postman collections.
-- [ ] Export Postman collections.
-
 ## Requirements
 
 - Neovim with `vim.system` support (>= 0.10).
