@@ -111,9 +111,10 @@ Variable precedence:
 The Rust binary should be able to run outside Neovim. The selected `.req`
 request is passed to Rust through stdin.
 
-Lua is expected to pass an optional context to Rust. That context contains
-environment groups and their values. The request selects which groups to use with
-`# @env`, and request-specific overrides can be declared with inline variables.
+Lua is expected to pass an optional context to Rust with `--context-json`. That
+context contains environment groups and their values. The request selects which
+groups to use with `# @env`, and request-specific overrides can be declared with
+inline variables.
 
 Example context:
 
@@ -143,6 +144,12 @@ The expected runtime flow is:
 6. Rust applies inline variables as request-specific overrides.
 7. Rust replaces `{{VARIABLES}}` in the URL, headers, and body.
 8. Rust executes the HTTP request.
+
+Example Rust invocation:
+
+```sh
+req-nvim --context-json '{"envs":{"dev":{"BASE_URL":"https://dev.example.com"}}}'
+```
 
 ## Contributing and development
 

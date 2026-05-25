@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use serde::Deserialize;
+
 use super::model::{ParsedRequest, Request, RequestBody, Variable};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -7,9 +9,28 @@ pub struct ResolveError {
     pub message: String,
 }
 
-/// Applies request-local variables to the parsed request.
-pub fn resolve_request(parsed: ParsedRequest) -> Result<Request, ResolveError> {
-    let vars = collect_vars(parsed.vars)?;
+#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
+pub struct ResolveContext {
+    #[serde(default)]
+    pub defaults: HashMap<String, String>,
+    #[serde(default)]
+    pub envs: HashMap<String, HashMap<String, String>>,
+}
+
+impl ResolveContext {
+    pub fn from_json(input: &str) -> Result<Self, ResolveError> {
+        serde_json::from_str(input).map_err(|error| ResolveError {
+            message: format!("Invalid context JSON: {}", error),
+        })
+    }
+}
+
+/// Applies context variables and request-local variables to the parsed request.
+pub fn resolve_request(
+    parsed: ParsedRequest,
+    context: ResolveContext,
+) -> Result<Request, ResolveError> {
+    let vars = resolve_vars(&parsed, context)?;
     let mut request = parsed.request;
 
     request.url = resolve_template(&request.url, &vars)?;
@@ -25,20 +46,66 @@ pub fn resolve_request(parsed: ParsedRequest) -> Result<Request, ResolveError> {
     Ok(request)
 }
 
-fn collect_vars(vars: Vec<Variable>) -> Result<HashMap<String, String>, ResolveError> {
-    let mut map = HashMap::new();
+fn resolve_vars(
+    parsed: &ParsedRequest,
+    context: ResolveContext,
+) -> Result<HashMap<String, String>, ResolveError> {
+    let mut vars = context.defaults;
+    let env_vars = collect_env_vars(&parsed.envs, context.envs)?;
+    vars.extend(env_vars);
+    apply_inline_vars(&mut vars, &parsed.vars)?;
 
-    for var in vars {
-        if map.contains_key(&var.name) {
+    Ok(vars)
+}
+
+fn collect_env_vars(
+    selected_envs: &[String],
+    envs: HashMap<String, HashMap<String, String>>,
+) -> Result<HashMap<String, String>, ResolveError> {
+    let mut values = HashMap::new();
+    let mut sources = HashMap::new();
+
+    for env_name in selected_envs {
+        let env = envs.get(env_name).ok_or_else(|| ResolveError {
+            message: format!("Missing environment: {}", env_name),
+        })?;
+
+        for (name, value) in env {
+            if let Some(previous_env) = sources.get(name) {
+                return Err(ResolveError {
+                    message: format!(
+                        "Variable {} is defined by multiple selected environments: {}, {}",
+                        name, previous_env, env_name
+                    ),
+                });
+            }
+
+            sources.insert(name.clone(), env_name.clone());
+            values.insert(name.clone(), value.clone());
+        }
+    }
+
+    Ok(values)
+}
+
+fn apply_inline_vars(
+    vars: &mut HashMap<String, String>,
+    inline_vars: &[Variable],
+) -> Result<(), ResolveError> {
+    let mut seen = HashMap::new();
+
+    for var in inline_vars {
+        if seen.contains_key(&var.name) {
             return Err(ResolveError {
                 message: format!("Duplicated variable: {}", var.name),
             });
         }
 
-        map.insert(var.name, var.value);
+        seen.insert(var.name.clone(), true);
+        vars.insert(var.name.clone(), var.value.clone());
     }
 
-    Ok(map)
+    Ok(())
 }
 
 fn resolve_template(

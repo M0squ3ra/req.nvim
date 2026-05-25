@@ -1,9 +1,20 @@
-use std::io::{self, Read};
+use std::{
+    env,
+    io::{self, Read},
+};
 
 mod http;
 mod req;
 
 fn main() {
+    let context = match parse_context_arg() {
+        Ok(context) => context,
+        Err(error) => {
+            eprintln!("{}", error);
+            std::process::exit(1);
+        }
+    };
+
     let mut input = String::new();
     io::stdin()
         .read_to_string(&mut input)
@@ -35,7 +46,7 @@ fn main() {
         )
         .collect::<Vec<_>>();
 
-    let request = match req::resolver::resolve_request(parsed_request) {
+    let request = match req::resolver::resolve_request(parsed_request, context) {
         Ok(request) => request,
         Err(error) => {
             eprintln!("Resolve error: {}", error.message);
@@ -72,4 +83,29 @@ fn main() {
 
     println!();
     println!("{}", response.body);
+}
+
+fn parse_context_arg() -> Result<req::resolver::ResolveContext, String> {
+    let mut args = env::args().skip(1);
+    let mut context = None;
+
+    while let Some(arg) = args.next() {
+        match arg.as_str() {
+            "--context-json" => {
+                let Some(json) = args.next() else {
+                    return Err("Missing value for --context-json".to_string());
+                };
+
+                context = Some(
+                    req::resolver::ResolveContext::from_json(&json)
+                        .map_err(|error| error.message)?,
+                );
+            }
+            other => {
+                return Err(format!("Unknown argument: {}", other));
+            }
+        }
+    }
+
+    Ok(context.unwrap_or_default())
 }
