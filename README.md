@@ -9,12 +9,13 @@ resolves the request context, and executes the HTTP call.
 
 ## MVP goals
 
-The initial file format for requests is `.req`.
+The initial file format for requests follows the common `.http` request file
+style, with small req.nvim-specific metadata comments.
 
 - [x] Execute the request under the cursor from a `.req` buffer.
 - [x] Execute a visually selected request from a `.req` buffer.
-- [ ] Use environment groups for values such as `BASE_URL` and default headers.
-- [ ] Use inline variables to override environment values for a single request.
+- [x] Use environment groups for values such as `BASE_URL` and default headers.
+- [x] Use inline variables to override environment values for a single request.
 - [ ] Combine multiple environment groups when running a request.
 - [ ] Prevent execution when selected environment groups override the same variable.
 - [ ] Import a `curl` command as a `.req` request.
@@ -45,7 +46,7 @@ Run the plugin command in Neovim:
 
 ## Request format
 
-Requests are written in `.req` files.
+Requests are written in `.http`-style files.
 
 A minimal request contains an HTTP method and a URL:
 
@@ -95,6 +96,7 @@ Format rules:
 - `### Name` defines the request name.
 - `# @env name` selects one environment group.
 - `@NAME=value` defines an inline variable for the current request.
+- `# comment` and `// comment` are ignored.
 - `METHOD URL` defines the HTTP request line.
 - `Header-Name: value` defines a header.
 - The body starts after the first empty line following the request line and headers.
@@ -106,17 +108,23 @@ Variable precedence:
 2. Variables from selected environment groups declared with `# @env`.
 3. Default or global variables.
 
-## Runtime context design
+## Environment context
 
-The Rust binary should be able to run outside Neovim. The selected `.req`
-request is passed to Rust through stdin.
+Lua looks for an optional environment context at:
 
-Lua is expected to pass an optional context to Rust with `--context-json`. That
-context contains environment groups and their values. The request selects which
-groups to use with `# @env`, and request-specific overrides can be declared with
-inline variables.
+```text
+.req/env.json
+```
 
-Example context:
+If the file exists, Lua reads it and passes it to Rust with `--context-json`.
+Rust can also run outside Neovim by receiving the selected request through stdin
+and an optional context with `--context-json`.
+
+The context contains default variables and environment groups. Defaults are
+always available. Environment groups are only available when selected with
+`# @env`. Request-specific overrides can be declared with inline variables.
+
+Example `.req/env.json`:
 
 ```json
 {
