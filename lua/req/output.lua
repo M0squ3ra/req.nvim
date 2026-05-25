@@ -7,6 +7,7 @@ function M.show(text)
   vim.bo[bufnr].buftype = "nofile"
   vim.bo[bufnr].bufhidden = "wipe"
   vim.bo[bufnr].swapfile = false
+  vim.bo[bufnr].filetype = "req_response"
 
   vim.cmd("rightbelow vsplit")
   vim.api.nvim_win_set_buf(0, bufnr)
