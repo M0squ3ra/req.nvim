@@ -23,15 +23,66 @@ style, with small req.nvim-specific metadata comments.
 - [ ] Import Postman collections.
 - [ ] Export Postman collections.
 
-## Local installation with lazy.nvim
+## Requirements
 
-During local development, point lazy.nvim to the plugin directory:
+- Neovim with `vim.system` support (>= 0.10).
+- Rust toolchain with Cargo.
+
+## Installation
+
+### lazy.nvim
+
+Install from GitHub:
 
 ```lua
 return {
-  dir = "/PATH/TO/req.nvim",
-  name = "req.nvim",
+  "m0squ3ra/req.nvim",
+  build = "cargo build --release",
+  cmd = "Req",
 }
+```
+
+### vim.pack
+
+Neovim 0.12 includes `vim.pack`. Add the plugin and build the Rust binary when
+the package is installed or updated:
+
+```lua
+vim.api.nvim_create_autocmd("PackChanged", {
+  callback = function(event)
+    local spec = event.data and event.data.spec
+
+    if not spec or spec.name ~= "req.nvim" then
+      return
+    end
+
+    if event.data.kind == "install" or event.data.kind == "update" then
+      vim.system({ "cargo", "build", "--release" }, { cwd = event.data.path })
+    end
+  end,
+})
+
+vim.pack.add({
+  { src = "https://github.com/m0squ3ra/req.nvim", name = "req.nvim" },
+})
+```
+
+### vim-plug
+
+```vim
+Plug 'm0squ3ra/req.nvim', { 'do': 'cargo build --release' }
+```
+
+### Native packages
+
+Install the plugin as a native start package and build the Rust binary:
+
+```sh
+git clone https://github.com/m0squ3ra/req.nvim \
+  ~/.local/share/nvim/site/pack/req/start/req.nvim
+
+cd ~/.local/share/nvim/site/pack/req/start/req.nvim
+cargo build --release
 ```
 
 ## Usage
@@ -142,6 +193,8 @@ Example `.req/env.json`:
   }
 }
 ```
+
+See `examples/requests.http` and `examples/.req/env.json` for a working example.
 
 The expected runtime flow is:
 
