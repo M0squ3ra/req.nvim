@@ -19,19 +19,27 @@ fn main() {
         }
     };
 
-    match http::client::execute(request) {
-        Ok(response) => {
-            println!("HTTP {}", response.status);
-            for header in response.headers {
-                println!("{}: {}", header.name, header.value);
-            }
+    let request_name = request
+        .name
+        .clone()
+        .unwrap_or_else(|| "Untitled request".to_string());
 
-            println!();
-            println!("{}", response.body);
-        }
+    let response = match http::client::execute(request) {
+        Ok(response) => response,
         Err(error) => {
             eprintln!("request error: {}", error);
             std::process::exit(1);
         }
+    };
+
+    println!("Request: {}", request_name);
+    println!();
+
+    println!("HTTP {}", response.status);
+    for header in response.headers {
+        println!("{}: {}", header.name, header.value);
     }
+
+    println!();
+    println!("{}", response.body);
 }

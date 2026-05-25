@@ -2,6 +2,8 @@ if exists("b:current_syntax")
   finish
 endif
 
+syntax match reqResponseRequest /^Request: .*$/
+syntax match reqResponseRequestLabel /^Request:/ containedin=reqResponseRequest
 syntax match reqResponseStatus /^HTTP \d\+.*$/
 syntax match reqResponseHeader /^[A-Za-z0-9-]\+: .*$/
 syntax match reqResponseHeaderName /^[A-Za-z0-9-]\+:/ containedin=reqResponseHeader
@@ -10,6 +12,8 @@ syntax match reqResponseJsonKey /"[^"]*"\s*:/ contained
 syntax region reqResponseString start=/"/ skip=/\\"/ end=/"/ contained
 syntax match reqResponseNumber /\v-?\d+(\.\d+)?/ contained
 
+highlight default link reqResponseRequest Title
+highlight default link reqResponseRequestLabel Identifier
 highlight default link reqResponseStatus Statement
 highlight default link reqResponseHeader Comment
 highlight default link reqResponseHeaderName Identifier
