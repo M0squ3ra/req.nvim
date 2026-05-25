@@ -35,7 +35,7 @@ pub fn parse_document(input: &str) -> ReqDocument {
             lines: Vec::new(),
         });
 
-        block.lines.push(parse_line(trimmed));
+        block.lines.push(parse_line(line, trimmed));
     }
 
     if let Some(block) = current_block {
@@ -46,14 +46,14 @@ pub fn parse_document(input: &str) -> ReqDocument {
 }
 
 /// Classifies a single line inside a request block.
-fn parse_line(line: &str) -> ReqLine {
-    if line.is_empty() {
+fn parse_line(raw: &str, trimmed: &str) -> ReqLine {
+    if trimmed.is_empty() {
         return ReqLine::Empty;
     }
 
-    if let Some(directive) = parse_directive(line) {
+    if let Some(directive) = parse_directive(trimmed) {
         return ReqLine::Directive(directive);
     }
 
-    ReqLine::Raw(line.to_string())
+    ReqLine::Raw(raw.to_string())
 }

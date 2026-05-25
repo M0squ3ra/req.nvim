@@ -1,0 +1,34 @@
+ ### Create webhook event
+@env dev
+
+POST https://webhook.site/9a7ad0dc-dd55-4403-8817-50432786b871
+Content-Type: application/json
+Accept: application/json
+X-Req-Source: req.nvim
+@body
+{
+  "event": "hello",
+  "source": "req.nvim",
+  "message": "hello from req.nvim"
+}
+
+### Send SOAP request
+@env dev
+
+POST https://webhook.site/9a7ad0dc-dd55-4403-8817-50432786b871
+Content-Type: text/xml; charset=utf-8
+SOAPAction: "urn:HelloWorld"
+X-Req-Source: req.nvim
+@body
+<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope
+	xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+	xmlns:req="urn:req-nvim">
+	<soapenv:Header/>
+	<soapenv:Body>
+		<req:HelloWorldRequest>
+			<req:Message>hello from req.nvim</req:Message>
+		</req:HelloWorldRequest>
+	</soapenv:Body>
+</soapenv:Envelope>
+

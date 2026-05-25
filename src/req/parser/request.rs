@@ -1,6 +1,6 @@
-use crate::req::model::{Header, HttpMethod, Request};
+use crate::req::model::{Header, HttpMethod, Request, RequestBody};
 
-use super::ast::{ReqBlock, ReqLine};
+use super::ast::{Directive, ReqBlock, ReqLine};
 use super::document::parse_document;
 
 /// Error returned when `.req` input cannot be parsed into a request.
@@ -26,8 +26,8 @@ enum ParseState {
     BeforeRequestLine,
     /// The parser is reading `Header: value` lines.
     InHeaders,
-    /// The parser finished the supported request sections.
-    Done,
+    /// The parser is reading body lines.
+    InBody,
 }
 
 /// Parses the first request block from `.req` input into an executable request.
@@ -48,6 +48,7 @@ fn parse_block(block: &ReqBlock) -> Result<Request, ParseError> {
     let mut state = ParseState::BeforeRequestLine;
     let mut request_line = None;
     let mut headers = Vec::new();
+    let mut body_lines = Vec::new();
 
     for (index, line) in block.lines.iter().enumerate() {
         let line_number = block.start_line + index;
@@ -62,20 +63,29 @@ fn parse_block(block: &ReqBlock) -> Result<Request, ParseError> {
             },
             ParseState::InHeaders => match line {
                 ReqLine::Empty => {
-                    state = ParseState::Done;
+                    state = ParseState::InBody;
                 }
                 ReqLine::Raw(raw) => {
                     headers.push(parse_header(raw, line_number)?);
                 }
+                ReqLine::Directive(Directive::Body) => {
+                    state = ParseState::InBody;
+                }
                 ReqLine::Directive(_) => {
-                    return Err(ParseError {
-                        message: "Directive must appear before request line".to_string(),
-                        line: line_number,
-                        column: 1,
-                    });
+                    return Err(invalid_directive_position(line_number));
                 }
             },
-            ParseState::Done => {}
+            ParseState::InBody => match line {
+                ReqLine::Empty => {
+                    body_lines.push(String::new());
+                }
+                ReqLine::Raw(raw) => {
+                    body_lines.push(raw.clone());
+                }
+                ReqLine::Directive(_) => {
+                    return Err(invalid_directive_position(line_number));
+                }
+            },
         }
     }
 
@@ -85,13 +95,27 @@ fn parse_block(block: &ReqBlock) -> Result<Request, ParseError> {
         column: 1,
     })?;
 
+    let body = if body_lines.is_empty() {
+        None
+    } else {
+        Some(RequestBody::Raw(body_lines.join("\n")))
+    };
+
     Ok(Request {
         name: block.name.clone(),
         method: request_line.method,
         url: request_line.url,
         headers,
-        body: None,
+        body,
     })
+}
+
+fn invalid_directive_position(line_number: usize) -> ParseError {
+    ParseError {
+        message: "Directive must appear before request line or be @body".to_string(),
+        line: line_number,
+        column: 1,
+    }
 }
 
 /// Parses a `METHOD URL` line.
