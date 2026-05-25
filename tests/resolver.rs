@@ -1,5 +1,5 @@
 use req_core::req::model::{Header, HttpMethod, ParsedRequest, Request, RequestBody, Variable};
-use req_core::req::resolver::{resolve_request, ResolveContext};
+use req_core::req::resolver::{needs_context, resolve_request, ResolveContext};
 
 fn parsed_request(envs: Vec<&str>, vars: Vec<(&str, &str)>, url: &str) -> ParsedRequest {
     ParsedRequest {
@@ -259,4 +259,78 @@ fn rejects_context_json_with_invalid_shape() {
     .unwrap_err();
 
     assert!(error.message.starts_with("Invalid context JSON:"));
+}
+
+#[test]
+fn request_without_envs_or_external_vars_does_not_need_context() {
+    let parsed = ParsedRequest {
+        name: None,
+        envs: vec![],
+        vars: vec![],
+        request: Request {
+            method: HttpMethod::Get,
+            url: "https://example.com/posts".to_string(),
+            headers: vec![Header {
+                name: "Accept".to_string(),
+                value: "application/json".to_string(),
+            }],
+            body: None,
+        },
+    };
+
+    assert!(!needs_context(&parsed).unwrap());
+}
+
+#[test]
+fn request_with_selected_env_needs_context() {
+    let parsed = ParsedRequest {
+        name: None,
+        envs: vec!["dev".to_string()],
+        vars: vec![],
+        request: Request {
+            method: HttpMethod::Get,
+            url: "https://example.com/posts".to_string(),
+            headers: vec![],
+            body: None,
+        },
+    };
+
+    assert!(needs_context(&parsed).unwrap());
+}
+
+#[test]
+fn request_with_external_template_var_needs_context() {
+    let parsed = ParsedRequest {
+        name: None,
+        envs: vec![],
+        vars: vec![],
+        request: Request {
+            method: HttpMethod::Get,
+            url: "{{BASE_URL}}/posts".to_string(),
+            headers: vec![],
+            body: None,
+        },
+    };
+
+    assert!(needs_context(&parsed).unwrap());
+}
+
+#[test]
+fn request_with_only_inline_template_vars_does_not_need_context() {
+    let parsed = ParsedRequest {
+        name: None,
+        envs: vec![],
+        vars: vec![Variable {
+            name: "BASE_URL".to_string(),
+            value: "https://example.com".to_string(),
+        }],
+        request: Request {
+            method: HttpMethod::Get,
+            url: "{{BASE_URL}}/posts".to_string(),
+            headers: vec![],
+            body: None,
+        },
+    };
+
+    assert!(!needs_context(&parsed).unwrap());
 }

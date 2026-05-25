@@ -25,6 +25,34 @@ impl ResolveContext {
     }
 }
 
+/// Returns true when the request needs external context from `--context-json`.
+pub fn needs_context(parsed: &ParsedRequest) -> Result<bool, ResolveError> {
+    if !parsed.envs.is_empty() {
+        return Ok(true);
+    }
+
+    let inline_vars = parsed
+        .vars
+        .iter()
+        .map(|var| var.name.as_str())
+        .collect::<HashSet<_>>();
+    let mut template_vars = HashSet::new();
+
+    collect_template_vars(&parsed.request.url, &mut template_vars)?;
+
+    for header in &parsed.request.headers {
+        collect_template_vars(&header.value, &mut template_vars)?;
+    }
+
+    if let Some(RequestBody::Raw(body)) = &parsed.request.body {
+        collect_template_vars(body, &mut template_vars)?;
+    }
+
+    Ok(template_vars
+        .into_iter()
+        .any(|name| !inline_vars.contains(name.as_str())))
+}
+
 /// Applies context variables and request-local variables to the parsed request.
 pub fn resolve_request(
     parsed: ParsedRequest,
@@ -44,6 +72,36 @@ pub fn resolve_request(
     }
 
     Ok(request)
+}
+
+fn collect_template_vars(
+    input: &str,
+    vars: &mut HashSet<String>,
+) -> Result<(), ResolveError> {
+    let mut rest = input;
+
+    while let Some(start) = rest.find("{{") {
+        let after_start = &rest[start + 2..];
+
+        let Some(end) = after_start.find("}}") else {
+            return Err(ResolveError {
+                message: "Unclosed variable expression".to_string(),
+            });
+        };
+
+        let name = after_start[..end].trim();
+
+        if name.is_empty() {
+            return Err(ResolveError {
+                message: "Empty variable expression".to_string(),
+            });
+        }
+
+        vars.insert(name.to_string());
+        rest = &after_start[end + 2..];
+    }
+
+    Ok(())
 }
 
 fn resolve_vars(

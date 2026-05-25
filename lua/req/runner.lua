@@ -67,7 +67,7 @@ local function env_path()
   end
 end
 
-local function context_json()
+local function context()
   local path = env_path()
 
   if not path then
@@ -75,7 +75,10 @@ local function context_json()
   end
 
   local lines = vim.fn.readfile(path)
-  return table.concat(lines, "\n")
+  return {
+    json = table.concat(lines, "\n"),
+    path = path,
+  }
 end
 
 local function command(bin, extra_args)
@@ -84,14 +87,22 @@ local function command(bin, extra_args)
     table.insert(cmd, arg)
   end
 
-  local context = context_json()
+  local ctx = context()
 
-  if context then
+  if ctx then
     table.insert(cmd, "--context-json")
-    table.insert(cmd, context)
+    table.insert(cmd, ctx.json)
   end
 
-  return cmd
+  return cmd, ctx and ctx.path or nil
+end
+
+local function error_message(stderr, context_path)
+  if context_path and stderr and string.find(stderr, "Invalid context JSON", 1, true) then
+    return stderr .. "\nContext file: " .. context_path
+  end
+
+  return stderr
 end
 
 local function request_input(bin, opts, callback)
@@ -138,11 +149,17 @@ local function execute(opts, extra_args, filetype)
   end
 
   request_input(bin, opts, function(input)
-    vim.system(command(bin, extra_args), { text = true, stdin = input }, function(result)
+    local cmd, context_path = command(bin, extra_args)
+
+    vim.system(cmd, { text = true, stdin = input }, function(result)
       vim.schedule(function()
         if result.code ~= 0 then
-          vim.notify(result.stderr, vim.log.levels.ERROR)
+          vim.notify(error_message(result.stderr, context_path), vim.log.levels.ERROR)
           return
+        end
+
+        if result.stderr and result.stderr ~= "" then
+          vim.notify(error_message(result.stderr, context_path), vim.log.levels.WARN)
         end
 
         output.show(result.stdout, filetype)

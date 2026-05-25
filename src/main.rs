@@ -56,7 +56,15 @@ fn main() {
         )
         .collect::<Vec<_>>();
 
-    let request = match req_core::req::resolver::resolve_request(parsed_request, options.context) {
+    let context = match context_for_request(&parsed_request, options.context_json.as_deref()) {
+        Ok(context) => context,
+        Err(error) => {
+            eprintln!("Resolve error: {}", error.message);
+            std::process::exit(1);
+        }
+    };
+
+    let request = match req_core::req::resolver::resolve_request(parsed_request, context) {
         Ok(request) => request,
         Err(error) => {
             eprintln!("Resolve error: {}", error.message);
@@ -101,7 +109,7 @@ fn main() {
 }
 
 struct CliOptions {
-    context: req_core::req::resolver::ResolveContext,
+    context_json: Option<String>,
     export_curl: bool,
     list_requests: bool,
 }
@@ -125,10 +133,7 @@ fn parse_args() -> Result<CliOptions, String> {
                     return Err("Missing value for --context-json".to_string());
                 };
 
-                context = Some(
-                    req_core::req::resolver::ResolveContext::from_json(&json)
-                        .map_err(|error| error.message)?,
-                );
+                context = Some(json);
             }
             other => {
                 return Err(format!("Unknown argument: {}", other));
@@ -137,8 +142,28 @@ fn parse_args() -> Result<CliOptions, String> {
     }
 
     Ok(CliOptions {
-        context: context.unwrap_or_default(),
+        context_json: context,
         export_curl,
         list_requests,
     })
+}
+
+fn context_for_request(
+    parsed_request: &req_core::req::model::ParsedRequest,
+    context_json: Option<&str>,
+) -> Result<req_core::req::resolver::ResolveContext, req_core::req::resolver::ResolveError> {
+    let Some(context_json) = context_json else {
+        return Ok(Default::default());
+    };
+
+    let needs_context = req_core::req::resolver::needs_context(parsed_request)?;
+
+    match req_core::req::resolver::ResolveContext::from_json(context_json) {
+        Ok(context) => Ok(context),
+        Err(error) if !needs_context => {
+            eprintln!("Warning: {}", error.message);
+            Ok(Default::default())
+        }
+        Err(error) => Err(error),
+    }
 }
