@@ -1,6 +1,7 @@
  ### Create webhook event
 # just a comment
 # @env dev
+# @env auth
 @USER_ID=1
 @BASE_URL=https://webhook.site/9a7ad0dc-dd55-4403-8817-50432786b871
 @TITLE=hello
@@ -15,7 +16,6 @@ Content-Type: application/json
 }
 
 # @env dev
-# @env auth
 
 POST https://webhook.site/9a7ad0dc-dd55-4403-8817-50432786b871
 Content-Type: text/xml; charset=utf-8
