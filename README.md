@@ -1,8 +1,11 @@
 # req.nvim
 
-`req.nvim` is a minimal Neovim plugin with a Lua integration layer and a Rust core.
+`req.nvim` is a minimal Neovim plugin for executing HTTP requests from buffers.
 
-Lua loads the plugin inside Neovim, runs the Rust binary with `vim.system`, and shows the result with `vim.notify`. The Rust binary is the core executable.
+The plugin has a Lua integration layer and a Rust core. Lua integrates with
+Neovim buffers, selections, commands, and local configuration. Rust is designed
+to stay independent from Neovim: it receives the selected request as input,
+resolves the request context, and executes the HTTP call.
 
 ## MVP goals
 
@@ -11,6 +14,7 @@ The initial file format for requests is `.req`.
 - [x] Execute the request under the cursor from a `.req` buffer.
 - [x] Execute a visually selected request from a `.req` buffer.
 - [ ] Use environment groups for values such as `BASE_URL` and default headers.
+- [ ] Use inline variables to override environment values for a single request.
 - [ ] Combine multiple environment groups when running a request.
 - [ ] Prevent execution when selected environment groups override the same variable.
 - [ ] Import a `curl` command as a `.req` request.
@@ -34,14 +38,10 @@ return {
 Run the plugin command in Neovim:
 
 ```vim
-:ReqHello
+:ReqRun
 ```
 
-`:ReqHello` executes the Rust binary and displays:
-
-```text
-hello from rust
-```
+`:ReqRun` executes the request under the cursor or the visually selected request.
 
 ## Request format
 
@@ -53,17 +53,19 @@ A minimal request contains an HTTP method and a URL:
 GET https://example.com
 ```
 
-A request can have a name, environment groups, headers, and a body:
+A request can have a name, environment groups, inline variables, headers, and a body:
 
 ```http
 ### Create user
 @env dev
 @env auth
+@var BASE_URL=https://staging.example.com
 
 POST {{BASE_URL}}/users
+@headers
 Content-Type: application/json
 Authorization: Bearer {{TOKEN}}
-
+@body
 {
   "name": "John",
   "email": "john@example.com"
@@ -77,13 +79,16 @@ Multiple requests can live in the same file. Each request starts with `###`:
 @env dev
 
 GET {{BASE_URL}}/health
+@headers
 Accept: application/json
 
 ### Get user
 @env dev
 @env auth
+@var USER_ID=1
 
-GET {{BASE_URL}}/users/1
+GET {{BASE_URL}}/users/{{USER_ID}}
+@headers
 Accept: application/json
 Authorization: Bearer {{TOKEN}}
 ```
@@ -92,10 +97,56 @@ Format rules:
 
 - `### Name` defines the request name.
 - `@env name` selects an environment group.
+- `@var NAME=value` defines an inline variable for the current request.
 - `METHOD URL` defines the HTTP request line.
+- `@headers` starts the request headers section.
 - `Header-Name: value` defines a header.
-- The body starts after the first empty line following the request line and headers.
+- `@body` starts the request body section.
 - Variables use `{{NAME}}` syntax.
+
+Variable precedence:
+
+1. Inline variables declared with `@var`.
+2. Variables from selected environment groups declared with `@env`.
+3. Default or global variables.
+
+## Runtime context design
+
+The Rust binary should be able to run outside Neovim. The selected `.req`
+request is passed to Rust through stdin.
+
+Lua is expected to pass an optional context to Rust. That context contains
+environment groups and their values. The request selects which groups to use with
+`@env`, and request-specific overrides can be declared with `@var`.
+
+Example context:
+
+```json
+{
+  "envs": {
+    "dev": {
+      "BASE_URL": "https://dev.example.com"
+    },
+    "auth": {
+      "TOKEN": "secret-token"
+    }
+  },
+  "defaults": {
+    "BASE_URL": "https://api.example.com"
+  }
+}
+```
+
+The expected runtime flow is:
+
+1. Lua sends the selected request to Rust.
+2. Lua optionally sends a context with environment groups and default values.
+3. Rust parses the request.
+4. Rust loads the selected `@env` groups from the context.
+5. Rust checks that selected environment groups do not override each other.
+6. Rust applies `@var` values as request-specific overrides.
+7. Rust replaces `{{VARIABLES}}` in the URL, headers, and body.
+8. Rust executes the HTTP request.
 
 ## Contributing and development
 
