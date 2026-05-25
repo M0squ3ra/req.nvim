@@ -3,6 +3,10 @@ name = "req-nvim"
 version = "0.1.0"
 edition = "2024"
 
+[lib]
+name = "req_core"
+path = "src/lib.rs"
+
 [dependencies]
 reqwest = { version = "0.13.3", features = ["blocking"] }
 serde = { version = "1", features = ["derive"] }

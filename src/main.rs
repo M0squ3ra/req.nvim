@@ -3,9 +3,6 @@ use std::{
     io::{self, Read},
 };
 
-mod http;
-mod req;
-
 fn main() {
     let context = match parse_context_arg() {
         Ok(context) => context,
@@ -19,7 +16,7 @@ fn main() {
     io::stdin()
         .read_to_string(&mut input)
         .expect("Failed to read stdin");
-    let parsed_request = match req::parser::parse_request(&input) {
+    let parsed_request = match req_core::req::parser::parse_request(&input) {
         Ok(parsed_request) => parsed_request,
         Err(error) => {
             eprintln!(
@@ -46,7 +43,7 @@ fn main() {
         )
         .collect::<Vec<_>>();
 
-    let request = match req::resolver::resolve_request(parsed_request, context) {
+    let request = match req_core::req::resolver::resolve_request(parsed_request, context) {
         Ok(request) => request,
         Err(error) => {
             eprintln!("Resolve error: {}", error.message);
@@ -54,7 +51,7 @@ fn main() {
         }
     };
 
-    let response = match http::client::execute(request) {
+    let response = match req_core::http::client::execute(request) {
         Ok(response) => response,
         Err(error) => {
             eprintln!("request error: {}", error);
@@ -85,7 +82,7 @@ fn main() {
     println!("{}", response.body);
 }
 
-fn parse_context_arg() -> Result<req::resolver::ResolveContext, String> {
+fn parse_context_arg() -> Result<req_core::req::resolver::ResolveContext, String> {
     let mut args = env::args().skip(1);
     let mut context = None;
 
@@ -97,7 +94,7 @@ fn parse_context_arg() -> Result<req::resolver::ResolveContext, String> {
                 };
 
                 context = Some(
-                    req::resolver::ResolveContext::from_json(&json)
+                    req_core::req::resolver::ResolveContext::from_json(&json)
                         .map_err(|error| error.message)?,
                 );
             }
