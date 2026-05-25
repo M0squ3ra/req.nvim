@@ -21,10 +21,56 @@ local function executable_bin()
   end
 end
 
-local function context_json()
-  local path = vim.fs.joinpath(vim.fn.getcwd(), ".req", "env.json")
+local function is_inside(path, root)
+  path = vim.fs.normalize(path)
+  root = vim.fs.normalize(root)
 
-  if vim.fn.filereadable(path) ~= 1 then
+  return path == root or vim.startswith(path, root .. "/")
+end
+
+local function current_buffer_dir()
+  local name = vim.api.nvim_buf_get_name(0)
+
+  if name == "" then
+    return vim.fn.getcwd()
+  end
+
+  return vim.fs.dirname(name)
+end
+
+local function env_path()
+  local cwd = vim.fs.normalize(vim.fn.getcwd())
+  local dir = vim.fs.normalize(current_buffer_dir())
+
+  if not is_inside(dir, cwd) then
+    dir = cwd
+  end
+
+  while true do
+    local path = vim.fs.joinpath(dir, ".req", "env.json")
+
+    if vim.fn.filereadable(path) == 1 then
+      return path
+    end
+
+    if dir == cwd then
+      return nil
+    end
+
+    local parent = vim.fs.dirname(dir)
+
+    if parent == dir or not is_inside(parent, cwd) then
+      return nil
+    end
+
+    dir = parent
+  end
+end
+
+local function context_json()
+  local path = env_path()
+
+  if not path then
     return nil
   end
 

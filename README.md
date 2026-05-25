@@ -146,13 +146,16 @@ Variable precedence:
 
 ## Environment context
 
-Lua looks for an optional environment context at:
+Lua looks for an optional environment context named:
 
 ```text
 .req/env.json
 ```
 
-If the file exists, Lua reads it and passes it to Rust with `--context-json`.
+When running from Neovim, req.nvim starts from the current buffer directory and
+searches upward until `cwd`. The first `.req/env.json` found is passed to Rust
+with `--context-json`.
+
 Rust can also run outside Neovim by receiving the selected request through stdin
 and an optional context with `--context-json`.
 
