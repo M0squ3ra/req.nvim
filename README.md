@@ -16,8 +16,8 @@ style, with small req.nvim-specific metadata comments.
 - [x] Execute a visually selected request from a `.req` buffer.
 - [x] Use environment groups for values such as `BASE_URL` and default headers.
 - [x] Use inline variables to override environment values for a single request.
-- [ ] Combine multiple environment groups when running a request.
-- [ ] Prevent execution when selected environment groups override the same variable.
+- [x] Combine multiple environment groups when running a request.
+- [x] Prevent execution when selected environment groups override the same variable.
 - [ ] Import a `curl` command as a `.req` request.
 - [ ] Export a `.req` request as a `curl` command.
 - [ ] Import Postman collections.
