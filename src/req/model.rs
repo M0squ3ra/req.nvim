@@ -1,5 +1,6 @@
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Request {
+    pub name: Option<String>,
     pub method: HttpMethod,
     pub url: String,
     pub headers: Vec<Header>,
@@ -7,10 +8,10 @@ pub struct Request {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Response{
+pub struct Response {
     pub status: u16,
     pub headers: Vec<Header>,
-    pub body: String //TODO: is it ok to be a String?
+    pub body: String, //TODO: is it ok to be a String?
 }
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Header {
