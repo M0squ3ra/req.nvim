@@ -1,15 +1,36 @@
-use crate::req::model::{HttpMethod, Request};
+use crate::req::model::{Header, HttpMethod, Request};
 
 use super::ast::{ReqBlock, ReqLine};
 use super::document::parse_document;
 
+/// Error returned when `.req` input cannot be parsed into a request.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParseError {
+    /// Human-readable error message.
     pub message: String,
+    /// One-based line number where the error happened.
     pub line: usize,
+    /// One-based column number where the error happened.
     pub column: usize,
 }
 
+/// Parsed `METHOD URL` request line.
+struct RequestLine {
+    method: HttpMethod,
+    url: String,
+}
+
+/// Current section while lowering a request block into a `Request`.
+enum ParseState {
+    /// The parser is looking for the `METHOD URL` line.
+    BeforeRequestLine,
+    /// The parser is reading `Header: value` lines.
+    InHeaders,
+    /// The parser finished the supported request sections.
+    Done,
+}
+
+/// Parses the first request block from `.req` input into an executable request.
 pub fn parse_request(input: &str) -> Result<Request, ParseError> {
     let document = parse_document(input);
 
@@ -22,28 +43,59 @@ pub fn parse_request(input: &str) -> Result<Request, ParseError> {
     parse_block(block)
 }
 
+/// Lowers a parsed request block into the plugin request model.
 fn parse_block(block: &ReqBlock) -> Result<Request, ParseError> {
+    let mut state = ParseState::BeforeRequestLine;
+    let mut request_line = None;
+    let mut headers = Vec::new();
+
     for (index, line) in block.lines.iter().enumerate() {
-        match line {
-            ReqLine::Raw(raw) => {
-                return parse_request_line(block.name.clone(), raw, block.start_line + index);
-            }
-            ReqLine::Directive(_) | ReqLine::Empty => {}
+        let line_number = block.start_line + index;
+
+        match state {
+            ParseState::BeforeRequestLine => match line {
+                ReqLine::Empty | ReqLine::Directive(_) => {}
+                ReqLine::Raw(raw) => {
+                    request_line = Some(parse_request_line(raw, line_number)?);
+                    state = ParseState::InHeaders;
+                }
+            },
+            ParseState::InHeaders => match line {
+                ReqLine::Empty => {
+                    state = ParseState::Done;
+                }
+                ReqLine::Raw(raw) => {
+                    headers.push(parse_header(raw, line_number)?);
+                }
+                ReqLine::Directive(_) => {
+                    return Err(ParseError {
+                        message: "Directive must appear before request line".to_string(),
+                        line: line_number,
+                        column: 1,
+                    });
+                }
+            },
+            ParseState::Done => {}
         }
     }
 
-    Err(ParseError {
+    let request_line = request_line.ok_or(ParseError {
         message: "Missing request line".to_string(),
         line: block.start_line,
         column: 1,
+    })?;
+
+    Ok(Request {
+        name: block.name.clone(),
+        method: request_line.method,
+        url: request_line.url,
+        headers,
+        body: None,
     })
 }
 
-fn parse_request_line(
-    name: Option<String>,
-    line: &str,
-    line_number: usize,
-) -> Result<Request, ParseError> {
+/// Parses a `METHOD URL` line.
+fn parse_request_line(line: &str, line_number: usize) -> Result<RequestLine, ParseError> {
     let mut parts = line.split_whitespace();
 
     let method = parts.next().ok_or(ParseError {
@@ -55,7 +107,7 @@ fn parse_request_line(
     let url = parts.next().ok_or(ParseError {
         message: "Missing url".to_string(),
         line: line_number,
-        column: 2,
+        column: method.len() + 2,
     })?;
 
     if parts.next().is_some() {
@@ -68,15 +120,40 @@ fn parse_request_line(
 
     let method = parse_method(method, line_number)?;
 
-    Ok(Request {
-        name,
+    Ok(RequestLine {
         method,
         url: url.to_string(),
-        headers: vec![],
-        body: None,
     })
 }
 
+/// Parses a single `Header: value` line.
+fn parse_header(line: &str, line_number: usize) -> Result<Header, ParseError> {
+    let Some((name, value)) = line.split_once(":") else {
+        return Err(ParseError {
+            message: "Invalid header".to_string(),
+            line: line_number,
+            column: 1,
+        });
+    };
+
+    let name = name.trim();
+    let value = value.trim();
+
+    if name.is_empty() {
+        return Err(ParseError {
+            message: "Missing header name".to_string(),
+            line: line_number,
+            column: 1,
+        });
+    }
+
+    Ok(Header {
+        name: name.to_string(),
+        value: value.to_string(),
+    })
+}
+
+/// Parses a supported HTTP method.
 fn parse_method(method: &str, line_number: usize) -> Result<HttpMethod, ParseError> {
     match method {
         "GET" => Ok(HttpMethod::Get),

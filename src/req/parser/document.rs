@@ -3,6 +3,10 @@ use crate::req::parser::ast::{ReqBlock, ReqDocument, ReqLine};
 use super::directive::parse_directive;
 use super::marker::parse_request_marker;
 
+/// Parses raw `.req` text into a document AST.
+///
+/// This stage only splits the input into request blocks and classifies each
+/// line. It does not validate request-line, header, or body semantics.
 pub fn parse_document(input: &str) -> ReqDocument {
     let mut requests = Vec::new();
     let mut current_block: Option<ReqBlock> = None;
@@ -41,6 +45,7 @@ pub fn parse_document(input: &str) -> ReqDocument {
     ReqDocument { requests }
 }
 
+/// Classifies a single line inside a request block.
 fn parse_line(line: &str) -> ReqLine {
     if line.is_empty() {
         return ReqLine::Empty;

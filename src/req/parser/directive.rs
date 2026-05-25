@@ -1,5 +1,7 @@
 use super::ast::Directive;
 
+/// Parses a `.req` directive line.
+///
 pub fn parse_directive(line: &str) -> Option<Directive> {
     let directive = line.strip_prefix("@")?;
     let mut parts = directive.split_whitespace();
@@ -11,6 +13,7 @@ pub fn parse_directive(line: &str) -> Option<Directive> {
     }
 }
 
+/// Parses the arguments of an `@env` directive.
 fn parse_env<'a>(mut parts: impl Iterator<Item = &'a str>) -> Option<Directive> {
     let env = parts.next()?;
 
