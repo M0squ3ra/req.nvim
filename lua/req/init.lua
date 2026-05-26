@@ -1,5 +1,9 @@
 local M = {}
 
+function M.setup(opts)
+  require("req.config").setup(opts)
+end
+
 function M.run(opts)
   require("req.runner").run(opts)
 end

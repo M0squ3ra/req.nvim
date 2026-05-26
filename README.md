@@ -83,6 +83,30 @@ Run the plugin command in Neovim:
 `:Req curl-copy` copies the resolved multiline `curl` command to the clipboard.
 `:Req rerun` executes the last request run with `:Req run`.
 
+## Configuration
+
+req.nvim works without configuration. Optional Lua configuration can customize
+the response window, response buffer, and clipboard register:
+
+```lua
+require("req").setup({
+  window = {
+    position = "right", -- "right", "left", "bottom", "top", or "current"
+    size = nil, -- columns for vertical splits, rows for horizontal splits
+    reuse = true,
+  },
+  output = {
+    buffer_name = "req://response",
+    filetype = {
+      response = "req_response",
+    },
+  },
+  clipboard = {
+    register = "+",
+  },
+})
+```
+
 ## Request format
 
 Requests are written in `.http`-style files.

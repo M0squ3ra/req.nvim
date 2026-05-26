@@ -1,4 +1,5 @@
 local M = {}
+local config = require("req.config")
 local output = require("req.output")
 local selection = require("req.selection")
 
@@ -140,7 +141,7 @@ local function request_input(bin, opts, callback)
 end
 
 local function copy_to_clipboard(text)
-  local ok, err = pcall(vim.fn.setreg, "+", text)
+  local ok, err = pcall(vim.fn.setreg, config.options.clipboard.register, text)
 
   if not ok then
     vim.notify("req.nvim: failed to copy curl command to clipboard: " .. err, vim.log.levels.ERROR)
@@ -198,7 +199,7 @@ local function execute(opts, extra_args, filetype, save_last, on_success)
 end
 
 function M.run(opts)
-  execute(opts, {}, "req_response", true)
+  execute(opts, {}, config.options.output.filetype.response, true)
 end
 
 function M.curl(opts)
