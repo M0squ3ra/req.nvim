@@ -139,7 +139,18 @@ local function request_input(bin, opts, callback)
   end)
 end
 
-local function run_input(bin, input, extra_args, filetype, save_last)
+local function copy_to_clipboard(text)
+  local ok, err = pcall(vim.fn.setreg, "+", text)
+
+  if not ok then
+    vim.notify("req.nvim: failed to copy curl command to clipboard: " .. err, vim.log.levels.ERROR)
+    return
+  end
+
+  vim.notify("req.nvim: copied curl command to clipboard", vim.log.levels.INFO)
+end
+
+local function run_input(bin, input, extra_args, filetype, save_last, on_success)
   local cmd, context_path = command(bin, extra_args)
 
   if save_last then
@@ -161,12 +172,16 @@ local function run_input(bin, input, extra_args, filetype, save_last)
         vim.notify(error_message(result.stderr, context_path), vim.log.levels.WARN)
       end
 
-      output.show(result.stdout, filetype)
+      if on_success then
+        on_success(result.stdout, filetype)
+      else
+        output.show(result.stdout, filetype)
+      end
     end)
   end)
 end
 
-local function execute(opts, extra_args, filetype, save_last)
+local function execute(opts, extra_args, filetype, save_last, on_success)
   local bin = executable_bin()
 
   if not bin then
@@ -178,7 +193,7 @@ local function execute(opts, extra_args, filetype, save_last)
   end
 
   request_input(bin, opts, function(input)
-    run_input(bin, input, extra_args, filetype, save_last)
+    run_input(bin, input, extra_args, filetype, save_last, on_success)
   end)
 end
 
@@ -188,6 +203,10 @@ end
 
 function M.curl(opts)
   execute(opts, { "--export-curl" }, "sh", false)
+end
+
+function M.curl_copy(opts)
+  execute(opts, { "--export-curl" }, "sh", false, copy_to_clipboard)
 end
 
 function M.rerun()
