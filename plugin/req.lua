@@ -5,6 +5,9 @@ local subcommands = {
 	curl = function(opts)
 		require("req").curl(opts)
 	end,
+	rerun = function()
+		require("req").rerun()
+	end,
 }
 
 vim.api.nvim_create_user_command("Req", function(opts)

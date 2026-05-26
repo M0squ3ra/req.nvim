@@ -74,10 +74,7 @@ pub fn resolve_request(
     Ok(request)
 }
 
-fn collect_template_vars(
-    input: &str,
-    vars: &mut HashSet<String>,
-) -> Result<(), ResolveError> {
+fn collect_template_vars(input: &str, vars: &mut HashSet<String>) -> Result<(), ResolveError> {
     let mut rest = input;
 
     while let Some(start) = rest.find("{{") {
@@ -171,10 +168,7 @@ fn apply_inline_vars(
     Ok(())
 }
 
-fn resolve_template(
-    input: &str,
-    vars: &HashMap<String, String>,
-) -> Result<String, ResolveError> {
+fn resolve_template(input: &str, vars: &HashMap<String, String>) -> Result<String, ResolveError> {
     let mut output = String::new();
     let mut rest = input;
 

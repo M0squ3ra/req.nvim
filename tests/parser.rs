@@ -1,6 +1,14 @@
+use req_core::req::lowering::lower_first_request;
 use req_core::req::model::{Header, HttpMethod, RequestBody, Variable};
 use req_core::req::parser::ast::{Directive, ReqLine};
-use req_core::req::parser::{parse_document, parse_request};
+use req_core::req::parser::parse;
+
+fn parse_request(
+    input: &str,
+) -> Result<req_core::req::model::ParsedRequest, req_core::req::error::ParseError> {
+    let document = parse(input);
+    lower_first_request(&document)
+}
 
 #[test]
 fn parses_minimal_request() {
@@ -125,13 +133,15 @@ Accept: application/json
     assert_eq!(parsed.request.headers.len(), 1);
     assert_eq!(
         parsed.request.body,
-        Some(RequestBody::Raw("{\n  \"ok\": true\n}".to_string()))
+        Some(RequestBody::Raw(
+            "# body comment\n{\n  \"ok\": true\n}".to_string()
+        ))
     );
 }
 
 #[test]
 fn document_splits_multiple_request_blocks() {
-    let document = parse_document(
+    let document = parse(
         r#"### First
 GET https://example.com/first
 
@@ -146,7 +156,7 @@ GET https://example.com/second"#,
 
 #[test]
 fn document_splits_unmarked_request_blocks() {
-    let document = parse_document(
+    let document = parse(
         r#"GET https://example.com/first
 
 # second request
@@ -157,7 +167,10 @@ GET https://example.com/second"#,
     assert_eq!(document.requests.len(), 2);
     assert_eq!(document.requests[0].start_line, 1);
     assert_eq!(document.requests[1].start_line, 3);
-    assert_eq!(document.requests[1].lines[0], ReqLine::Comment);
+    assert_eq!(
+        document.requests[1].lines[0],
+        ReqLine::Comment("# second request".to_string())
+    );
     assert_eq!(
         document.requests[1].lines[1],
         ReqLine::Directive(Directive::Env("dev".to_string()))
@@ -166,7 +179,7 @@ GET https://example.com/second"#,
 
 #[test]
 fn document_does_not_split_body_method_words_without_url() {
-    let document = parse_document(
+    let document = parse(
         r#"POST https://example.com
 Content-Type: text/plain
 
@@ -178,7 +191,7 @@ GET this is body text"#,
 
 #[test]
 fn document_classifies_comments_and_directives() {
-    let document = parse_document(
+    let document = parse(
         r#"### Test
 # normal comment
 # @env dev
@@ -188,8 +201,11 @@ GET https://example.com"#,
 
     let lines = &document.requests[0].lines;
 
-    assert_eq!(lines[0], ReqLine::Comment);
-    assert_eq!(lines[1], ReqLine::Directive(Directive::Env("dev".to_string())));
+    assert_eq!(lines[0], ReqLine::Comment("# normal comment".to_string()));
+    assert_eq!(
+        lines[1],
+        ReqLine::Directive(Directive::Env("dev".to_string()))
+    );
     assert_eq!(
         lines[2],
         ReqLine::Directive(Directive::Variable {
@@ -218,8 +234,10 @@ fn fixture_parses_simple_unmarked_request() {
 
 #[test]
 fn fixture_parses_marked_request_with_env_and_vars() {
-    let parsed = parse_request(include_str!("fixtures/parser/marked_with_env_and_vars.http"))
-        .unwrap();
+    let parsed = parse_request(include_str!(
+        "fixtures/parser/marked_with_env_and_vars.http"
+    ))
+    .unwrap();
 
     assert_eq!(parsed.name, Some("Get post".to_string()));
     assert_eq!(parsed.envs, vec!["dev".to_string()]);
@@ -250,7 +268,7 @@ fn fixture_parses_post_with_json_body() {
 
 #[test]
 fn fixture_splits_mixed_multiple_requests() {
-    let document = parse_document(include_str!("fixtures/parser/mixed_multiple_requests.http"));
+    let document = parse(include_str!("fixtures/parser/mixed_multiple_requests.http"));
 
     assert_eq!(document.requests.len(), 4);
     assert_eq!(document.requests[0].name, None);
@@ -261,14 +279,14 @@ fn fixture_splits_mixed_multiple_requests() {
 
 #[test]
 fn fixture_does_not_split_body_method_words() {
-    let document = parse_document(include_str!("fixtures/parser/body_with_method_words.http"));
+    let document = parse(include_str!("fixtures/parser/body_with_method_words.http"));
 
     assert_eq!(document.requests.len(), 1);
 }
 
 #[test]
 fn fixture_splits_large_mixed_http_file() {
-    let document = parse_document(include_str!("fixtures/large_mixed.http"));
+    let document = parse(include_str!("fixtures/large_mixed.http"));
 
     assert_eq!(document.requests.len(), 8);
     assert_eq!(document.requests[0].name, None);
@@ -286,11 +304,14 @@ fn fixture_splits_large_mixed_http_file() {
 
 #[test]
 fn fixture_large_mixed_first_request_keeps_prelude() {
-    let document = parse_document(include_str!("fixtures/large_mixed.http"));
+    let document = parse(include_str!("fixtures/large_mixed.http"));
     let first = &document.requests[0];
 
     assert_eq!(first.start_line, 1);
-    assert_eq!(first.lines[0], ReqLine::Comment);
+    assert_eq!(
+        first.lines[0],
+        ReqLine::Comment("# workspace comment".to_string())
+    );
     assert_eq!(
         first.lines[1],
         ReqLine::Directive(Directive::Env("dev".to_string()))
@@ -394,4 +415,38 @@ fn rejects_directive_after_request_line() {
     .unwrap_err();
 
     assert_eq!(error.message, "Directive must appear before request line");
+}
+
+#[test]
+fn preserves_comment_lines_inside_body() {
+    let parsed = parse_request(
+        r#"POST https://example.com/logs
+Content-Type: text/plain
+
+# body comment
+// another body line
+plain text"#,
+    )
+    .unwrap();
+
+    assert_eq!(
+        parsed.request.body,
+        Some(RequestBody::Raw(
+            "# body comment\n// another body line\nplain text".to_string()
+        ))
+    );
+}
+
+#[test]
+fn document_splits_unmarked_relative_url_requests() {
+    let document = parse(
+        r#"GET /first
+
+# second request
+GET /second"#,
+    );
+
+    assert_eq!(document.requests.len(), 2);
+    assert_eq!(document.requests[0].start_line, 1);
+    assert_eq!(document.requests[1].start_line, 3);
 }

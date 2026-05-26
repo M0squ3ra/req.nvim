@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-use super::parser::parse_document;
+use super::parser::parse;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct RequestListing {
@@ -10,7 +10,7 @@ pub struct RequestListing {
 }
 
 pub fn list_requests(input: &str) -> Vec<RequestListing> {
-    parse_document(input)
+    parse(input)
         .requests
         .into_iter()
         .map(|block| {

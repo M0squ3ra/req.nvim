@@ -1,4 +1,4 @@
-use req_core::req::listing::{list_requests, RequestListing};
+use req_core::req::listing::{RequestListing, list_requests};
 
 #[test]
 fn lists_request_ranges_with_markers() {
@@ -101,7 +101,9 @@ GET this is body text"#,
 
 #[test]
 fn fixture_lists_mixed_request_ranges() {
-    let requests = list_requests(include_str!("fixtures/listing/mixed_multiple_requests.http"));
+    let requests = list_requests(include_str!(
+        "fixtures/listing/mixed_multiple_requests.http"
+    ));
 
     assert_eq!(
         requests,

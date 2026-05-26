@@ -1,16 +1,15 @@
 //! Parser for the `.req` file format.
 //!
-//! The parser is split into stages:
-//! document parsing builds an AST from raw text, and request parsing lowers the
-//! first request block into the executable plugin model.
+//! Public contract:
+//! raw `.req` text in, parser AST out.
+//!
+//! Lowering this AST into the executable request model is handled by
+//! `crate::req::lowering`.
 
 pub mod ast;
-mod directive;
 mod document;
-mod error;
-mod marker;
-mod request;
+mod grammar;
+mod lexer;
+pub mod span;
 
-pub use document::parse_document;
-pub use error::ParseError;
-pub use request::parse_request;
+pub use document::parse;

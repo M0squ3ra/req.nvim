@@ -29,7 +29,8 @@ fn main() {
         return;
     }
 
-    let parsed_request = match req_core::req::parser::parse_request(&input) {
+    let document = req_core::req::parser::parse(&input);
+    let parsed_request = match req_core::req::lowering::lower_first_request(&document) {
         Ok(parsed_request) => parsed_request,
         Err(error) => {
             eprintln!(

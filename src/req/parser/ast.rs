@@ -1,3 +1,5 @@
+use super::span::Span;
+
 /// Parsed representation of a complete `.req` document.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReqDocument {
@@ -16,6 +18,8 @@ pub struct ReqBlock {
     pub start_line: usize,
     /// Classified lines that belong to this block.
     pub lines: Vec<ReqLine>,
+    /// Full source range covered by this request block.
+    pub span: Span,
 }
 
 /// A classified line inside a request block.
@@ -24,7 +28,7 @@ pub enum ReqLine {
     /// An empty line.
     Empty,
     /// A regular comment ignored by request parsing.
-    Comment,
+    Comment(String),
     /// A parser-supported directive such as `@env dev`.
     Directive(Directive),
     /// Any line that is not empty and not a supported directive.

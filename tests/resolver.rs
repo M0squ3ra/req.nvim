@@ -1,5 +1,5 @@
 use req_core::req::model::{Header, HttpMethod, ParsedRequest, Request, RequestBody, Variable};
-use req_core::req::resolver::{needs_context, resolve_request, ResolveContext};
+use req_core::req::resolver::{ResolveContext, needs_context, resolve_request};
 
 fn parsed_request(envs: Vec<&str>, vars: Vec<(&str, &str)>, url: &str) -> ParsedRequest {
     ParsedRequest {

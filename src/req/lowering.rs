@@ -1,41 +1,32 @@
-use crate::req::model::{Header, HttpMethod, ParsedRequest, Request, RequestBody, Variable};
+use super::error::ParseError;
+use super::model::{Header, HttpMethod, ParsedRequest, Request, RequestBody, Variable};
+use super::parser::ast::{Directive, ReqBlock, ReqDocument, ReqLine};
 
-use super::ast::{Directive, ReqBlock, ReqLine};
-use super::document::parse_document;
-use super::ParseError;
-
-/// Parsed `METHOD URL` request line.
 struct RequestLine {
     method: HttpMethod,
     url: String,
 }
 
-/// Current section while lowering a request block into a `Request`.
-enum RequestParseState {
-    /// The parser is looking for the `METHOD URL` line.
+enum LoweringState {
     BeforeRequestLine,
-    /// The parser is reading `Header: value` lines.
     InHeaders,
-    /// The parser is reading body lines.
     InBody,
 }
 
-/// Parses the first request block from `.req` input into a parsed request.
-pub fn parse_request(input: &str) -> Result<ParsedRequest, ParseError> {
-    let document = parse_document(input);
-
+/// Converts the first request block in a parsed document into the executable model.
+pub fn lower_first_request(document: &ReqDocument) -> Result<ParsedRequest, ParseError> {
     let block = document.requests.first().ok_or(ParseError {
         message: "Empty request".to_string(),
         line: 1,
         column: 1,
     })?;
 
-    parse_block(block)
+    lower_request(block)
 }
 
-/// Lowers a parsed request block into the plugin request model.
-fn parse_block(block: &ReqBlock) -> Result<ParsedRequest, ParseError> {
-    let mut state = RequestParseState::BeforeRequestLine;
+/// Converts a parser AST request block into the executable request model.
+pub fn lower_request(block: &ReqBlock) -> Result<ParsedRequest, ParseError> {
+    let mut state = LoweringState::BeforeRequestLine;
     let mut request_line = None;
     let mut envs = Vec::new();
     let mut vars = Vec::new();
@@ -46,8 +37,8 @@ fn parse_block(block: &ReqBlock) -> Result<ParsedRequest, ParseError> {
         let line_number = block.start_line + index;
 
         match state {
-            RequestParseState::BeforeRequestLine => match line {
-                ReqLine::Empty | ReqLine::Comment => {}
+            LoweringState::BeforeRequestLine => match line {
+                ReqLine::Empty | ReqLine::Comment(_) => {}
                 ReqLine::Directive(Directive::Env(env)) => {
                     envs.push(env.clone());
                 }
@@ -57,16 +48,15 @@ fn parse_block(block: &ReqBlock) -> Result<ParsedRequest, ParseError> {
                         value: value.clone(),
                     });
                 }
-                ReqLine::Directive(_) => {}
                 ReqLine::Raw(raw) => {
                     request_line = Some(parse_request_line(raw, line_number)?);
-                    state = RequestParseState::InHeaders;
+                    state = LoweringState::InHeaders;
                 }
             },
-            RequestParseState::InHeaders => match line {
-                ReqLine::Comment => {}
+            LoweringState::InHeaders => match line {
+                ReqLine::Comment(_) => {}
                 ReqLine::Empty => {
-                    state = RequestParseState::InBody;
+                    state = LoweringState::InBody;
                 }
                 ReqLine::Raw(raw) => {
                     headers.push(parse_header(raw, line_number)?);
@@ -75,8 +65,10 @@ fn parse_block(block: &ReqBlock) -> Result<ParsedRequest, ParseError> {
                     return Err(invalid_directive_position(line_number));
                 }
             },
-            RequestParseState::InBody => match line {
-                ReqLine::Comment => {}
+            LoweringState::InBody => match line {
+                ReqLine::Comment(raw) => {
+                    body_lines.push(raw.clone());
+                }
                 ReqLine::Empty => {
                     body_lines.push(String::new());
                 }
@@ -102,18 +94,16 @@ fn parse_block(block: &ReqBlock) -> Result<ParsedRequest, ParseError> {
         Some(RequestBody::Raw(body_lines.join("\n")))
     };
 
-    let request = Request {
-        method: request_line.method,
-        url: request_line.url,
-        headers,
-        body,
-    };
-
     Ok(ParsedRequest {
         name: block.name.clone(),
         envs,
         vars,
-        request,
+        request: Request {
+            method: request_line.method,
+            url: request_line.url,
+            headers,
+            body,
+        },
     })
 }
 
@@ -125,7 +115,6 @@ fn invalid_directive_position(line_number: usize) -> ParseError {
     }
 }
 
-/// Parses a `METHOD URL` line.
 fn parse_request_line(line: &str, line_number: usize) -> Result<RequestLine, ParseError> {
     let mut parts = line.split_whitespace();
 
@@ -149,15 +138,12 @@ fn parse_request_line(line: &str, line_number: usize) -> Result<RequestLine, Par
         });
     }
 
-    let method = parse_method(method, line_number)?;
-
     Ok(RequestLine {
-        method,
+        method: parse_method(method, line_number)?,
         url: url.to_string(),
     })
 }
 
-/// Parses a single `Header: value` line.
 fn parse_header(line: &str, line_number: usize) -> Result<Header, ParseError> {
     let Some((name, value)) = line.split_once(":") else {
         return Err(ParseError {
@@ -184,7 +170,6 @@ fn parse_header(line: &str, line_number: usize) -> Result<Header, ParseError> {
     })
 }
 
-/// Parses a supported HTTP method.
 fn parse_method(method: &str, line_number: usize) -> Result<HttpMethod, ParseError> {
     match method {
         "GET" => Ok(HttpMethod::Get),

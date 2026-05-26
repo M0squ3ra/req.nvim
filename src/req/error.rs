@@ -1,4 +1,4 @@
-/// Error returned when `.req` input cannot be parsed.
+/// Error returned when `.req` input cannot be converted into an executable request.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParseError {
     /// Human-readable error message.

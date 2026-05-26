@@ -2,6 +2,8 @@ local M = {}
 local output = require("req.output")
 local selection = require("req.selection")
 
+local last_request = nil
+
 local function plugin_root()
   local source = debug.getinfo(1, "S").source:sub(2)
   return vim.fs.dirname(vim.fs.dirname(vim.fs.dirname(source)))
@@ -137,7 +139,34 @@ local function request_input(bin, opts, callback)
   end)
 end
 
-local function execute(opts, extra_args, filetype)
+local function run_input(bin, input, extra_args, filetype, save_last)
+  local cmd, context_path = command(bin, extra_args)
+
+  if save_last then
+    last_request = {
+      input = input,
+      extra_args = extra_args,
+      filetype = filetype,
+    }
+  end
+
+  vim.system(cmd, { text = true, stdin = input }, function(result)
+    vim.schedule(function()
+      if result.code ~= 0 then
+        vim.notify(error_message(result.stderr, context_path), vim.log.levels.ERROR)
+        return
+      end
+
+      if result.stderr and result.stderr ~= "" then
+        vim.notify(error_message(result.stderr, context_path), vim.log.levels.WARN)
+      end
+
+      output.show(result.stdout, filetype)
+    end)
+  end)
+end
+
+local function execute(opts, extra_args, filetype, save_last)
   local bin = executable_bin()
 
   if not bin then
@@ -149,31 +178,35 @@ local function execute(opts, extra_args, filetype)
   end
 
   request_input(bin, opts, function(input)
-    local cmd, context_path = command(bin, extra_args)
-
-    vim.system(cmd, { text = true, stdin = input }, function(result)
-      vim.schedule(function()
-        if result.code ~= 0 then
-          vim.notify(error_message(result.stderr, context_path), vim.log.levels.ERROR)
-          return
-        end
-
-        if result.stderr and result.stderr ~= "" then
-          vim.notify(error_message(result.stderr, context_path), vim.log.levels.WARN)
-        end
-
-        output.show(result.stdout, filetype)
-      end)
-    end)
+    run_input(bin, input, extra_args, filetype, save_last)
   end)
 end
 
 function M.run(opts)
-  execute(opts, {}, "req_response")
+  execute(opts, {}, "req_response", true)
 end
 
 function M.curl(opts)
-  execute(opts, { "--export-curl" }, "sh")
+  execute(opts, { "--export-curl" }, "sh", false)
+end
+
+function M.rerun()
+  if not last_request then
+    vim.notify("req.nvim: no request to rerun", vim.log.levels.ERROR)
+    return
+  end
+
+  local bin = executable_bin()
+
+  if not bin then
+    vim.notify(
+      "req.nvim: Rust binary not found. Run `cargo build` or `cargo build --release`.",
+      vim.log.levels.ERROR
+    )
+    return
+  end
+
+  run_input(bin, last_request.input, last_request.extra_args, last_request.filetype, true)
 end
 
 return M
