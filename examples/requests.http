@@ -6,7 +6,7 @@
 @BASE_URL=https://webhook.site/9a7ad0dc-dd55-4403-8817-50432786b871
 @TITLE=hello
 
-POST {{BAsSE_URL}}/posts
+POST {{BASE_URL}}/posts
 Authorization: Bearer {{TOKEN}}
 Content-Type: application/json
 
