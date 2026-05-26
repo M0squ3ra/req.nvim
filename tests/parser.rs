@@ -5,7 +5,7 @@ use req_core::req::parser::parse;
 
 fn parse_request(
     input: &str,
-) -> Result<req_core::req::model::ParsedRequest, req_core::req::error::ParseError> {
+) -> Result<req_core::req::model::ParsedRequest, req_core::req::lowering::LoweringError> {
     let document = parse(input);
     lower_first_request(&document)
 }

@@ -1,6 +1,16 @@
-use super::error::ParseError;
 use super::model::{Header, HttpMethod, ParsedRequest, Request, RequestBody, Variable};
 use super::parser::ast::{Directive, ReqBlock, ReqDocument, ReqLine};
+
+/// Error returned when a parsed `.req` block cannot be lowered into an executable request.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LoweringError {
+    /// Human-readable error message.
+    pub message: String,
+    /// One-based line number where the error happened.
+    pub line: usize,
+    /// One-based column number where the error happened.
+    pub column: usize,
+}
 
 struct RequestLine {
     method: HttpMethod,
@@ -14,8 +24,8 @@ enum LoweringState {
 }
 
 /// Converts the first request block in a parsed document into the executable model.
-pub fn lower_first_request(document: &ReqDocument) -> Result<ParsedRequest, ParseError> {
-    let block = document.requests.first().ok_or(ParseError {
+pub fn lower_first_request(document: &ReqDocument) -> Result<ParsedRequest, LoweringError> {
+    let block = document.requests.first().ok_or(LoweringError {
         message: "Empty request".to_string(),
         line: 1,
         column: 1,
@@ -25,7 +35,7 @@ pub fn lower_first_request(document: &ReqDocument) -> Result<ParsedRequest, Pars
 }
 
 /// Converts a parser AST request block into the executable request model.
-pub fn lower_request(block: &ReqBlock) -> Result<ParsedRequest, ParseError> {
+pub fn lower_request(block: &ReqBlock) -> Result<ParsedRequest, LoweringError> {
     let mut state = LoweringState::BeforeRequestLine;
     let mut request_line = None;
     let mut envs = Vec::new();
@@ -82,7 +92,7 @@ pub fn lower_request(block: &ReqBlock) -> Result<ParsedRequest, ParseError> {
         }
     }
 
-    let request_line = request_line.ok_or(ParseError {
+    let request_line = request_line.ok_or(LoweringError {
         message: "Missing request line".to_string(),
         line: block.start_line,
         column: 1,
@@ -107,31 +117,31 @@ pub fn lower_request(block: &ReqBlock) -> Result<ParsedRequest, ParseError> {
     })
 }
 
-fn invalid_directive_position(line_number: usize) -> ParseError {
-    ParseError {
+fn invalid_directive_position(line_number: usize) -> LoweringError {
+    LoweringError {
         message: "Directive must appear before request line".to_string(),
         line: line_number,
         column: 1,
     }
 }
 
-fn parse_request_line(line: &str, line_number: usize) -> Result<RequestLine, ParseError> {
+fn parse_request_line(line: &str, line_number: usize) -> Result<RequestLine, LoweringError> {
     let mut parts = line.split_whitespace();
 
-    let method = parts.next().ok_or(ParseError {
+    let method = parts.next().ok_or(LoweringError {
         message: "Missing method".to_string(),
         line: line_number,
         column: 1,
     })?;
 
-    let url = parts.next().ok_or(ParseError {
+    let url = parts.next().ok_or(LoweringError {
         message: "Missing url".to_string(),
         line: line_number,
         column: method.len() + 2,
     })?;
 
     if parts.next().is_some() {
-        return Err(ParseError {
+        return Err(LoweringError {
             message: "Invalid request line".to_string(),
             line: line_number,
             column: method.len() + url.len() + 3,
@@ -144,9 +154,9 @@ fn parse_request_line(line: &str, line_number: usize) -> Result<RequestLine, Par
     })
 }
 
-fn parse_header(line: &str, line_number: usize) -> Result<Header, ParseError> {
+fn parse_header(line: &str, line_number: usize) -> Result<Header, LoweringError> {
     let Some((name, value)) = line.split_once(":") else {
-        return Err(ParseError {
+        return Err(LoweringError {
             message: "Invalid header".to_string(),
             line: line_number,
             column: 1,
@@ -157,7 +167,7 @@ fn parse_header(line: &str, line_number: usize) -> Result<Header, ParseError> {
     let value = value.trim();
 
     if name.is_empty() {
-        return Err(ParseError {
+        return Err(LoweringError {
             message: "Missing header name".to_string(),
             line: line_number,
             column: 1,
@@ -170,7 +180,7 @@ fn parse_header(line: &str, line_number: usize) -> Result<Header, ParseError> {
     })
 }
 
-fn parse_method(method: &str, line_number: usize) -> Result<HttpMethod, ParseError> {
+fn parse_method(method: &str, line_number: usize) -> Result<HttpMethod, LoweringError> {
     match method {
         "GET" => Ok(HttpMethod::Get),
         "POST" => Ok(HttpMethod::Post),
@@ -179,7 +189,7 @@ fn parse_method(method: &str, line_number: usize) -> Result<HttpMethod, ParseErr
         "DELETE" => Ok(HttpMethod::Delete),
         "HEAD" => Ok(HttpMethod::Head),
         "OPTIONS" => Ok(HttpMethod::Options),
-        other => Err(ParseError {
+        other => Err(LoweringError {
             message: format!("Unsupported method: {other}"),
             line: line_number,
             column: 1,
