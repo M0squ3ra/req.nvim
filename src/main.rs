@@ -4,42 +4,67 @@ use std::{
 };
 
 fn main() {
-    let options = match parse_args() {
-        Ok(options) => options,
-        Err(error) => {
-            eprintln!("{}", error);
-            std::process::exit(1);
-        }
-    };
+    if let Err(error) = run() {
+        eprintln!("{}", error);
+        std::process::exit(1);
+    }
+}
 
+fn run() -> Result<(), String> {
+    let options = parse_args()?;
+    let input = read_stdin()?;
+
+    match options.mode {
+        Mode::ListRequests => list_requests(&input),
+        Mode::ExportCurl => export_curl(&input, options.context_json.as_deref()),
+        Mode::Run => execute_request(&input, options.context_json.as_deref()),
+    }
+}
+
+fn read_stdin() -> Result<String, String> {
     let mut input = String::new();
     io::stdin()
         .read_to_string(&mut input)
-        .expect("Failed to read stdin");
+        .map_err(|error| format!("Failed to read stdin: {error}"))?;
 
-    if options.list_requests {
-        match serde_json::to_string(&req_core::req::listing::list_requests(&input)) {
-            Ok(json) => println!("{}", json),
-            Err(error) => {
-                eprintln!("List requests error: {}", error);
-                std::process::exit(1);
-            }
-        }
+    Ok(input)
+}
 
-        return;
-    }
+fn list_requests(input: &str) -> Result<(), String> {
+    let json = serde_json::to_string(&req_core::req::listing::list_requests(input))
+        .map_err(|error| format!("List requests error: {error}"))?;
 
-    let document = req_core::req::parser::parse(&input);
-    let parsed_request = match req_core::req::lowering::lower_first_request(&document) {
-        Ok(parsed_request) => parsed_request,
-        Err(error) => {
-            eprintln!(
-                "Parse error at {}:{}: {}",
-                error.line, error.column, error.message
-            );
-            std::process::exit(1);
-        }
-    };
+    println!("{}", json);
+    Ok(())
+}
+
+fn export_curl(input: &str, context_json: Option<&str>) -> Result<(), String> {
+    let resolved = resolve_selected_request(input, context_json)?;
+
+    println!("{}", req_core::req::curl::to_curl(&resolved.request));
+    Ok(())
+}
+
+fn execute_request(input: &str, context_json: Option<&str>) -> Result<(), String> {
+    let resolved = resolve_selected_request(input, context_json)?;
+    let response = req_core::http::client::execute(resolved.request)
+        .map_err(|error| format!("request error: {error}"))?;
+
+    print_response(&resolved.name, &resolved.directives, response);
+    Ok(())
+}
+
+struct ResolvedRequest {
+    name: String,
+    directives: Vec<String>,
+    request: req_core::req::model::Request,
+}
+
+fn resolve_selected_request(
+    input: &str,
+    context_json: Option<&str>,
+) -> Result<ResolvedRequest, String> {
+    let parsed_request = parse_selected_request(input)?;
 
     let request_name = parsed_request
         .name
@@ -57,35 +82,33 @@ fn main() {
         )
         .collect::<Vec<_>>();
 
-    let context = match context_for_request(&parsed_request, options.context_json.as_deref()) {
-        Ok(context) => context,
-        Err(error) => {
-            eprintln!("Resolve error: {}", error.message);
-            std::process::exit(1);
-        }
-    };
+    let context = context_for_request(&parsed_request, context_json)
+        .map_err(|error| format!("Resolve error: {}", error.message))?;
+    let request = req_core::req::resolver::resolve_request(parsed_request, context)
+        .map_err(|error| format!("Resolve error: {}", error.message))?;
 
-    let request = match req_core::req::resolver::resolve_request(parsed_request, context) {
-        Ok(request) => request,
-        Err(error) => {
-            eprintln!("Resolve error: {}", error.message);
-            std::process::exit(1);
-        }
-    };
+    Ok(ResolvedRequest {
+        name: request_name,
+        directives,
+        request,
+    })
+}
 
-    if options.export_curl {
-        println!("{}", req_core::req::curl::to_curl(&request));
-        return;
-    }
+fn parse_selected_request(input: &str) -> Result<req_core::req::model::ParsedRequest, String> {
+    let document = req_core::req::parser::parse(input);
+    req_core::req::lowering::lower_first_request(&document).map_err(|error| {
+        format!(
+            "Parse error at {}:{}: {}",
+            error.line, error.column, error.message
+        )
+    })
+}
 
-    let response = match req_core::http::client::execute(request) {
-        Ok(response) => response,
-        Err(error) => {
-            eprintln!("request error: {}", error);
-            std::process::exit(1);
-        }
-    };
-
+fn print_response(
+    request_name: &str,
+    directives: &[String],
+    response: req_core::req::model::Response,
+) {
     println!("###Name: {}", request_name);
     println!();
 
@@ -109,25 +132,30 @@ fn main() {
     println!("{}", response.body);
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Mode {
+    Run,
+    ExportCurl,
+    ListRequests,
+}
+
 struct CliOptions {
     context_json: Option<String>,
-    export_curl: bool,
-    list_requests: bool,
+    mode: Mode,
 }
 
 fn parse_args() -> Result<CliOptions, String> {
     let mut args = env::args().skip(1);
     let mut context = None;
-    let mut export_curl = false;
-    let mut list_requests = false;
+    let mut mode = Mode::Run;
 
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--list-requests" => {
-                list_requests = true;
+                set_mode(&mut mode, Mode::ListRequests)?;
             }
             "--export-curl" => {
-                export_curl = true;
+                set_mode(&mut mode, Mode::ExportCurl)?;
             }
             "--context-json" => {
                 let Some(json) = args.next() else {
@@ -144,9 +172,17 @@ fn parse_args() -> Result<CliOptions, String> {
 
     Ok(CliOptions {
         context_json: context,
-        export_curl,
-        list_requests,
+        mode,
     })
+}
+
+fn set_mode(current: &mut Mode, next: Mode) -> Result<(), String> {
+    if *current != Mode::Run && *current != next {
+        return Err("Only one command mode can be used at a time".to_string());
+    }
+
+    *current = next;
+    Ok(())
 }
 
 fn context_for_request(
