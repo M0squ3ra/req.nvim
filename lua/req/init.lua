@@ -12,6 +12,10 @@ function M.curl_copy(opts)
   require("req.runner").curl_copy(opts)
 end
 
+function M.check(opts)
+  require("req.runner").check(opts)
+end
+
 function M.rerun()
   require("req.runner").rerun()
 end

@@ -16,6 +16,7 @@ fn run() -> Result<(), String> {
 
     match options.mode {
         Mode::ListRequests => list_requests(&input),
+        Mode::Check => check_request(&input, options.context_json.as_deref()),
         Mode::ExportCurl => export_curl(&input, options.context_json.as_deref()),
         Mode::Run => execute_request(&input, options.context_json.as_deref()),
     }
@@ -42,6 +43,13 @@ fn export_curl(input: &str, context_json: Option<&str>) -> Result<(), String> {
     let resolved = resolve_selected_request(input, context_json)?;
 
     println!("{}", req_core::req::curl::to_curl(&resolved.request));
+    Ok(())
+}
+
+fn check_request(input: &str, context_json: Option<&str>) -> Result<(), String> {
+    resolve_selected_request(input, context_json)?;
+
+    println!("OK");
     Ok(())
 }
 
@@ -135,6 +143,7 @@ fn print_response(
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Mode {
     Run,
+    Check,
     ExportCurl,
     ListRequests,
 }
@@ -153,6 +162,9 @@ fn parse_args() -> Result<CliOptions, String> {
         match arg.as_str() {
             "--list-requests" => {
                 set_mode(&mut mode, Mode::ListRequests)?;
+            }
+            "--check" => {
+                set_mode(&mut mode, Mode::Check)?;
             }
             "--export-curl" => {
                 set_mode(&mut mode, Mode::ExportCurl)?;

@@ -209,6 +209,12 @@ function M.curl_copy(opts)
   execute(opts, { "--export-curl" }, "sh", false, copy_to_clipboard)
 end
 
+function M.check(opts)
+  execute(opts, { "--check" }, nil, false, function()
+    vim.notify("req.nvim: request check passed", vim.log.levels.INFO)
+  end)
+end
+
 function M.rerun()
   if not last_request then
     vim.notify("req.nvim: no request to rerun", vim.log.levels.ERROR)

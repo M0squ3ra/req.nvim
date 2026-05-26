@@ -78,6 +78,7 @@ Run the plugin command in Neovim:
 ```
 
 `:Req run` executes the request under the cursor or the visually selected request.
+`:Req check` validates the request syntax, selected environment groups, and variables without executing it.
 `:Req curl` exports the resolved request as a multiline `curl` command.
 `:Req curl-copy` copies the resolved multiline `curl` command to the clipboard.
 `:Req rerun` executes the last request run with `:Req run`.

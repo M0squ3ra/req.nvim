@@ -8,6 +8,9 @@ local subcommands = {
 	["curl-copy"] = function(opts)
 		require("req").curl_copy(opts)
 	end,
+	check = function(opts)
+		require("req").check(opts)
+	end,
 	rerun = function()
 		require("req").rerun()
 	end,
