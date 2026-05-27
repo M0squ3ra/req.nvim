@@ -116,7 +116,7 @@ local function request_input(bin, opts, callback)
 
   local buffer = selection.buffer()
 
-  vim.system({ bin, "--list-requests" }, { text = true, stdin = buffer }, function(result)
+  vim.system({ bin, "--list-requests", "--output-json" }, { text = true, stdin = buffer }, function(result)
     vim.schedule(function()
       if result.code ~= 0 then
         vim.notify(result.stderr, vim.log.levels.ERROR)
@@ -129,7 +129,7 @@ local function request_input(bin, opts, callback)
         return
       end
 
-      local request = selection.find_at_cursor(requests)
+      local request = selection.find_at_cursor(requests.requests)
       if not request then
         vim.notify("req.nvim: no request under cursor", vim.log.levels.ERROR)
         return

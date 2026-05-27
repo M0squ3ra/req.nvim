@@ -234,10 +234,16 @@ it:
 req-nvim --export-curl --context-json '{"envs":{"dev":{"BASE_URL":"https://dev.example.com"}}}'
 ```
 
-List request ranges as JSON:
+List request ranges:
 
 ```sh
 req-nvim --list-requests
+```
+
+Render command output as JSON for integrations:
+
+```sh
+req-nvim --list-requests --output-json
 ```
 
 ## Contributing and development
