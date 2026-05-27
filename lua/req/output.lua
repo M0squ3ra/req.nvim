@@ -77,7 +77,65 @@ local function open_buf(bufnr)
   end
 end
 
-function M.show(text, filetype)
+local function append(lines, value)
+  table.insert(lines, value)
+end
+
+local function append_directives(lines, directives)
+  append(lines, "###Directives")
+
+  if not directives or vim.tbl_isempty(directives) then
+    append(lines, "None")
+  else
+    for _, directive in ipairs(directives) do
+      append(lines, directive)
+    end
+  end
+
+  append(lines, "")
+end
+
+local function append_response(lines, response)
+  local options = config.options.output
+
+  append(lines, "###Response")
+
+  if options.show_status then
+    append(lines, "HTTP " .. tostring(response.status))
+  end
+
+  if options.show_headers and response.headers then
+    for _, header in ipairs(response.headers) do
+      append(lines, header.name .. ": " .. header.value)
+    end
+  end
+
+  if options.show_body then
+    append(lines, "")
+
+    if response.body and response.body ~= "" then
+      vim.list_extend(lines, vim.split(response.body, "\n", { plain = true }))
+    end
+  end
+end
+
+local function response_lines(payload)
+  local options = config.options.output
+  local lines = {}
+
+  append(lines, "###Name: " .. payload.request.name)
+  append(lines, "")
+
+  if options.show_directives then
+    append_directives(lines, payload.request.directives)
+  end
+
+  append_response(lines, payload.response)
+
+  return lines
+end
+
+function M.show_lines(lines, filetype)
   local bufnr = get_or_create_buf()
 
   open_buf(bufnr)
@@ -85,10 +143,17 @@ function M.show(text, filetype)
   vim.bo[bufnr].filetype = filetype or config.options.output.filetype.response
   vim.bo[bufnr].modifiable = true
 
-  local lines = vim.split(text, "\n", { plain = true })
   vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
 
   vim.bo[bufnr].modifiable = false
+end
+
+function M.show(text, filetype)
+  M.show_lines(vim.split(text, "\n", { plain = true }), filetype)
+end
+
+function M.show_response(payload)
+  M.show_lines(response_lines(payload), config.options.output.filetype.response)
 end
 
 return M

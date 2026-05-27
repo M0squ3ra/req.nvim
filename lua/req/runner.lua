@@ -151,6 +151,17 @@ local function copy_to_clipboard(text)
   vim.notify("req.nvim: copied curl command to clipboard", vim.log.levels.INFO)
 end
 
+local function show_json_response(text)
+  local ok, payload = pcall(vim.json.decode, text)
+
+  if not ok then
+    vim.notify("req.nvim: failed to parse response JSON", vim.log.levels.ERROR)
+    return
+  end
+
+  output.show_response(payload)
+end
+
 local function run_input(bin, input, extra_args, filetype, save_last, on_success)
   local cmd, context_path = command(bin, extra_args)
 
@@ -159,6 +170,7 @@ local function run_input(bin, input, extra_args, filetype, save_last, on_success
       input = input,
       extra_args = extra_args,
       filetype = filetype,
+      on_success = on_success,
     }
   end
 
@@ -199,7 +211,13 @@ local function execute(opts, extra_args, filetype, save_last, on_success)
 end
 
 function M.run(opts)
-  execute(opts, {}, config.options.output.filetype.response, true)
+  execute(
+    opts,
+    { "--output-json" },
+    config.options.output.filetype.response,
+    true,
+    show_json_response
+  )
 end
 
 function M.curl(opts)
@@ -232,7 +250,14 @@ function M.rerun()
     return
   end
 
-  run_input(bin, last_request.input, last_request.extra_args, last_request.filetype, true)
+  run_input(
+    bin,
+    last_request.input,
+    last_request.extra_args,
+    last_request.filetype,
+    true,
+    last_request.on_success
+  )
 end
 
 return M

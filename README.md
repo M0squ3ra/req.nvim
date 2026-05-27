@@ -100,6 +100,10 @@ require("req").setup({
     filetype = {
       response = "req_response",
     },
+    show_directives = true,
+    show_status = true,
+    show_headers = true,
+    show_body = true,
   },
   clipboard = {
     register = "+",
