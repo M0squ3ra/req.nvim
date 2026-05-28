@@ -40,6 +40,8 @@ pub enum ReqLine {
 pub enum Directive {
     /// Selects an environment group for the request.
     Env(String),
+    /// Sets a request timeout in milliseconds.
+    Timeout(String),
     /// Defines a request-local variable override.
     Variable { name: String, value: String },
 }

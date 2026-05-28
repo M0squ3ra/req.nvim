@@ -127,6 +127,7 @@ A request can have a name, environment groups, inline variables, headers, and a 
 ### Create user
 # @env dev
 # @env auth
+# @timeout 30000
 @BASE_URL=https://staging.example.com
 
 POST {{BASE_URL}}/users
@@ -162,6 +163,7 @@ Format rules:
 
 - `### Name` defines the request name.
 - `# @env name` selects one environment group.
+- `# @timeout milliseconds` sets the request timeout.
 - `@NAME=value` defines an inline variable for the current request.
 - `# comment` and `// comment` are ignored.
 - `METHOD URL` defines the HTTP request line.

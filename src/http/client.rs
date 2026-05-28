@@ -1,7 +1,10 @@
+use std::time::Duration;
+
 use crate::req::model::{Header, HttpMethod, Request, RequestBody, Response};
 
 pub fn execute(request: Request) -> Result<Response, String> {
-    let client = reqwest::blocking::Client::new();
+    let client = client(&request)?;
+    let timeout_ms = request.options.timeout_ms;
     let method = to_reqwest_method(request.method);
     let mut builder = client.request(method, request.url);
 
@@ -13,7 +16,9 @@ pub fn execute(request: Request) -> Result<Response, String> {
         builder = builder.body(body);
     }
 
-    let response = builder.send().map_err(|error| error.to_string())?;
+    let response = builder
+        .send()
+        .map_err(|error| request_error(error, timeout_ms))?;
 
     let status = response.status().as_u16();
     let headers = response
@@ -31,6 +36,28 @@ pub fn execute(request: Request) -> Result<Response, String> {
         headers,
         body,
     })
+}
+
+fn request_error(error: reqwest::Error, timeout_ms: Option<u64>) -> String {
+    if error.is_timeout() {
+        if let Some(timeout_ms) = timeout_ms {
+            return format!("request timed out after {timeout_ms}ms");
+        }
+
+        return "request timed out".to_string();
+    }
+
+    error.to_string()
+}
+
+fn client(request: &Request) -> Result<reqwest::blocking::Client, String> {
+    let mut builder = reqwest::blocking::Client::builder();
+
+    if let Some(timeout_ms) = request.options.timeout_ms {
+        builder = builder.timeout(Duration::from_millis(timeout_ms));
+    }
+
+    builder.build().map_err(|error| error.to_string())
 }
 
 fn to_reqwest_method(method: HttpMethod) -> reqwest::Method {

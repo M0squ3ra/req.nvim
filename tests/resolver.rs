@@ -1,4 +1,6 @@
-use req_core::req::model::{Header, HttpMethod, ParsedRequest, Request, RequestBody, Variable};
+use req_core::req::model::{
+    Header, HttpMethod, ParsedRequest, Request, RequestBody, RequestOptions, Variable,
+};
 use req_core::req::resolver::{ResolveContext, needs_context, resolve_request};
 
 fn parsed_request(envs: Vec<&str>, vars: Vec<(&str, &str)>, url: &str) -> ParsedRequest {
@@ -20,6 +22,7 @@ fn parsed_request(envs: Vec<&str>, vars: Vec<(&str, &str)>, url: &str) -> Parsed
                 value: "Bearer {{TOKEN}}".to_string(),
             }],
             body: Some(RequestBody::Raw("{\"id\": {{USER_ID}}}".to_string())),
+            options: RequestOptions::default(),
         },
     }
 }
@@ -275,6 +278,7 @@ fn request_without_envs_or_external_vars_does_not_need_context() {
                 value: "application/json".to_string(),
             }],
             body: None,
+            options: RequestOptions::default(),
         },
     };
 
@@ -292,6 +296,7 @@ fn request_with_selected_env_needs_context() {
             url: "https://example.com/posts".to_string(),
             headers: vec![],
             body: None,
+            options: RequestOptions::default(),
         },
     };
 
@@ -309,6 +314,7 @@ fn request_with_external_template_var_needs_context() {
             url: "{{BASE_URL}}/posts".to_string(),
             headers: vec![],
             body: None,
+            options: RequestOptions::default(),
         },
     };
 
@@ -329,6 +335,7 @@ fn request_with_only_inline_template_vars_does_not_need_context() {
             url: "{{BASE_URL}}/posts".to_string(),
             headers: vec![],
             body: None,
+            options: RequestOptions::default(),
         },
     };
 

@@ -18,6 +18,12 @@ pub struct Request {
     pub url: String,
     pub headers: Vec<Header>,
     pub body: Option<RequestBody>,
+    pub options: RequestOptions,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct RequestOptions {
+    pub timeout_ms: Option<u64>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

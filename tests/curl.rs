@@ -1,5 +1,5 @@
 use req_core::req::curl::to_curl;
-use req_core::req::model::{Header, HttpMethod, Request, RequestBody};
+use req_core::req::model::{Header, HttpMethod, Request, RequestBody, RequestOptions};
 
 fn request(method: HttpMethod, url: &str) -> Request {
     Request {
@@ -7,6 +7,7 @@ fn request(method: HttpMethod, url: &str) -> Request {
         url: url.to_string(),
         headers: Vec::new(),
         body: None,
+        options: RequestOptions::default(),
     }
 }
 

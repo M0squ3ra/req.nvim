@@ -45,6 +45,31 @@ GET https://example.com/users/1"#,
 }
 
 #[test]
+fn parses_timeout_metadata_comment() {
+    let parsed = parse_request(
+        r#"### Get user
+# @timeout 30000
+GET https://example.com/users/1"#,
+    )
+    .unwrap();
+
+    assert_eq!(parsed.request.options.timeout_ms, Some(30000));
+}
+
+#[test]
+fn rejects_invalid_timeout_metadata_comment() {
+    let error = parse_request(
+        r#"### Get user
+# @timeout nope
+GET https://example.com/users/1"#,
+    )
+    .unwrap_err();
+
+    assert_eq!(error.message, "Invalid timeout");
+    assert_eq!(error.line, 2);
+}
+
+#[test]
 fn parses_inline_variables() {
     let parsed = parse_request(
         r#"@BASE_URL=https://example.com
@@ -195,6 +220,7 @@ fn document_classifies_comments_and_directives() {
         r#"### Test
 # normal comment
 # @env dev
+# @timeout 30000
 @TOKEN=abc123
 GET https://example.com"#,
     );
@@ -208,6 +234,10 @@ GET https://example.com"#,
     );
     assert_eq!(
         lines[2],
+        ReqLine::Directive(Directive::Timeout("30000".to_string()))
+    );
+    assert_eq!(
+        lines[3],
         ReqLine::Directive(Directive::Variable {
             name: "TOKEN".to_string(),
             value: "abc123".to_string(),

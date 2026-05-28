@@ -71,6 +71,7 @@ fn parse_metadata_comment(line: &str) -> Option<Directive> {
 
     match name {
         "@env" => parse_env(parts),
+        "@timeout" => parse_timeout(parts),
         _ => None,
     }
 }
@@ -88,6 +89,16 @@ fn parse_env<'a>(mut parts: impl Iterator<Item = &'a str>) -> Option<Directive> 
     }
 
     Some(Directive::Env(env.to_string()))
+}
+
+fn parse_timeout<'a>(mut parts: impl Iterator<Item = &'a str>) -> Option<Directive> {
+    let timeout = parts.next()?;
+
+    if parts.next().is_some() {
+        return None;
+    }
+
+    Some(Directive::Timeout(timeout.to_string()))
 }
 
 fn parse_variable(variable: &str) -> Option<Directive> {

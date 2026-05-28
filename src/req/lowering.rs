@@ -1,4 +1,6 @@
-use super::model::{Header, HttpMethod, ParsedRequest, Request, RequestBody, Variable};
+use super::model::{
+    Header, HttpMethod, ParsedRequest, Request, RequestBody, RequestOptions, Variable,
+};
 use super::parser::ast::{Directive, ReqBlock, ReqDocument, ReqLine};
 
 /// Error returned when a parsed `.req` block cannot be lowered into an executable request.
@@ -40,6 +42,7 @@ pub fn lower_request(block: &ReqBlock) -> Result<ParsedRequest, LoweringError> {
     let mut request_line = None;
     let mut envs = Vec::new();
     let mut vars = Vec::new();
+    let mut options = RequestOptions::default();
     let mut headers = Vec::new();
     let mut body_lines = Vec::new();
 
@@ -51,6 +54,9 @@ pub fn lower_request(block: &ReqBlock) -> Result<ParsedRequest, LoweringError> {
                 ReqLine::Empty | ReqLine::Comment(_) => {}
                 ReqLine::Directive(Directive::Env(env)) => {
                     envs.push(env.clone());
+                }
+                ReqLine::Directive(Directive::Timeout(value)) => {
+                    options.timeout_ms = Some(parse_timeout(value, line_number)?);
                 }
                 ReqLine::Directive(Directive::Variable { name, value }) => {
                     vars.push(Variable {
@@ -113,6 +119,7 @@ pub fn lower_request(block: &ReqBlock) -> Result<ParsedRequest, LoweringError> {
             url: request_line.url,
             headers,
             body,
+            options,
         },
     })
 }
@@ -178,6 +185,24 @@ fn parse_header(line: &str, line_number: usize) -> Result<Header, LoweringError>
         name: name.to_string(),
         value: value.to_string(),
     })
+}
+
+fn parse_timeout(value: &str, line_number: usize) -> Result<u64, LoweringError> {
+    let timeout = value.parse::<u64>().map_err(|_| LoweringError {
+        message: "Invalid timeout".to_string(),
+        line: line_number,
+        column: 1,
+    })?;
+
+    if timeout == 0 {
+        return Err(LoweringError {
+            message: "Invalid timeout".to_string(),
+            line: line_number,
+            column: 1,
+        });
+    }
+
+    Ok(timeout)
 }
 
 fn parse_method(method: &str, line_number: usize) -> Result<HttpMethod, LoweringError> {
